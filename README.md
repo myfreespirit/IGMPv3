@@ -15,7 +15,7 @@ Make sure the path to your cloned repository is correct. When using relative pat
 You can work with the files in both locations now! 
 
 In order to test our progress, we can use a dummy handler named `test` on `generator` element using following commands:  
-./userlevel/click -p 10000 scripts/igmpv3/test.click
+./userlevel/click -p 10000 scripts/IGMPv3/test.click
 
 telnet localhost 10000
 -> write generator.test SRC 1.2.3.4, DST 5.6.7.8
