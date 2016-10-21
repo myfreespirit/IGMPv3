@@ -15,9 +15,11 @@ class Generator : public Element {
 		int configure(Vector<String>&, ErrorHandler*);
 		
 		void push(int, Packet *);
-		Packet* createPacket(in_addr, in_addr);
+		Packet* createQueryPacket(in_addr, in_addr);
+		Packet* createReportPacket(in_addr, in_addr);
 
-		static int handle(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
+		static int queryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
+		static int reportHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
 		void add_handlers();
 };
 

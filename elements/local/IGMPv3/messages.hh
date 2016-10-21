@@ -12,8 +12,25 @@ struct Query {
 	unsigned QRV:(3);
 	uint8_t QQIC;
 	uint16_t number_of_sources;
-	Vector<in_addr> sources_address;
+	Vector<in_addr> source_addresses;
 };
 
+struct GroupRecord {
+    uint8_t type;
+    uint8_t aux_data_len;
+    uint16_t number_of_sources;
+    in_addr multicast_address;
+	Vector<in_addr> source_addresses;
+	Vector<uint32_t> aux_data;
+};
+
+struct Report {
+    uint8_t type;
+    uint8_t reserved_top;
+    uint16_t checksum;
+    uint16_t reserved_bottom;
+	uint16_t number_of_group_records;
+    //Vector<GroupRecord> group_records;
+};
 
 #endif // CLICK_MESSAGES_HH
