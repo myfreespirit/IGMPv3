@@ -18,7 +18,9 @@ In order to test our progress, we can use a dummy handler named `test` on `gener
 ./userlevel/click -p 10000 scripts/IGMPv3/test.click
 
 telnet localhost 10000
--> write generator.test SRC 1.2.3.4, DST 5.6.7.8
+or
+telnet 127.0.0.1 10000
+-> write generator.report SRC 1.2.3.4, DST 5.6.7.8
 -> quit
 
 Created by   
