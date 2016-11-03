@@ -9,6 +9,8 @@
 #include <clicknet/ip.h>
 
 CLICK_DECLS
+Reporter::Reporter(){}
+Reporter::~ Reporter(){}
 
 int Reporter::configure(Vector<String> &conf, ErrorHandler *errh) {
 	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_source, "DST", cpkM, cpIPAddress, &_destination, cpEnd) < 0) return -1;
@@ -53,7 +55,9 @@ Packet* Reporter::createJoinReport(IPAddress groupAddress)
     groupRecord->number_of_sources = htons(0);
     groupRecord->multicast_address = groupAddress;
 
-	q->set_dst_ip_anno(_destination);
+	report->checksum = click_in_cksum((unsigned char*) report, sizeof(Report) + sizeof(GroupRecord));
+    q->set_dst_ip_anno(_destination);
+
 
 	return q;
 

@@ -15,7 +15,9 @@ elementclass Client {
 		-> [1]output;
 	
 	rt[1]
+		-> IPPrint("client join report 0")
 		-> DropBroadcasts
+		-> IPPrint("client join report 1")
 		-> ipgw :: IPGWOptions($address)
 		-> FixIPSrc($address)
 		-> ttl :: DecIPTTL
@@ -47,4 +49,8 @@ elementclass Client {
 	
 	in_cl[2]
 		-> ip;
+		
+	reporter::Reporter(SRC $address, DST $gateway)
+		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
+		-> output;
 }
