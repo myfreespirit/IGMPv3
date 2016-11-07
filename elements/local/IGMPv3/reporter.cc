@@ -58,10 +58,7 @@ Packet* Reporter::createJoinReport(IPAddress groupAddress)
 	report->checksum = click_in_cksum((unsigned char*) report, sizeof(Report) + sizeof(GroupRecord));
     q->set_dst_ip_anno(_destination);
 
-
 	return q;
-
-
 }
 
 int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh)

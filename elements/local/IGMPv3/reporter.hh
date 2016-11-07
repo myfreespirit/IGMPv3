@@ -14,16 +14,17 @@ public:
 	int configure(Vector<String>&, ErrorHandler*);
 
 	void push(int, Packet*);
+	
+	Packet* createJoinReport(IPAddress groupAddress);
+
 	/**
 	 * handler
 	 */
 	static int joinGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
-	Packet* createJoinReport(IPAddress groupAddress);
 	void add_handlers();
 private:
 	IPAddress _source;
 	IPAddress _destination;
-
 };
 
 

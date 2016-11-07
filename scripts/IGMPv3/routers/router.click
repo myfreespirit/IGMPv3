@@ -49,12 +49,16 @@ elementclass Router {
 
 	// Input and output paths for interface 1
 	input[1]
-		-> IPPrint("router received packet from clients network1")
 		-> HostEtherFilter($client1_address)
-		-> IPPrint("router received packet from clients network1")
+		-> ip_igmp_class::IPClassifier(ip proto 2, -)[1]
+		-> IPPrint("router received a packet")
 		-> client1_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client1_address)
 		-> [1]output;
+
+	ip_igmp_class[0]
+		-> IPPrint("Router received IGMP packet")
+		-> Discard;
 
 	client1_arpq :: ARPQuerier($client1_address)
 		-> [1]output;
