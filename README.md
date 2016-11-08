@@ -3,7 +3,7 @@ As described by RFC 3376, RFC 2236 and RFC 1112.
 
 Implemented using C++ and click modular router.
 
-Instructions  
+# Instructions  
 After cloning this project to a preferred location we will have to setup two symbolic links inside click-2.0.1 from scripts and elements/local directories to prevent duplication of files. To do so we will use:
 
 cd click-2.0.1/  
@@ -14,15 +14,16 @@ Make sure the path to your cloned repository is correct. When using relative pat
 
 You can work with the files in both locations now! 
 
-In order to test our progress, we can use a dummy handler named `test` on `generator` element using following commands:  
-./userlevel/click -p 10000 scripts/IGMPv3/test.click
+# Demonstrations
+We will gather several examples inside subdirectories at `scripts/IGMPv3/tests/`  
+You're supposed to run .click files with `./userlevel/click -p 10000 scripts/IGMPv3/tests/example-name.click`  
+In another terminal run the respective command `./scripts/IGMPv3/tests/example-name.sh | telnet 127.0.0.1 10000`  
+This will invoke our handlers on the click script. To verify the results use `wireshark example-name.dump`  
 
-telnet localhost 10000
-or
-telnet 127.0.0.1 10000
--> write generator.report SRC 1.2.3.4, DST 5.6.7.8
--> quit
+Example files | Comments
+--- | ---
+`joins/report-exclude-none` | generates a join report for a given multicast host address without filtering sources
 
-Created by   
+# Authors
 Eduard Besjentsev  
 Nishchal Shrestha
