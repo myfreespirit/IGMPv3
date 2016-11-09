@@ -47,8 +47,10 @@ elementclass Client {
 	
 	in_cl[2]
 		-> ip;
-		
-	reporter::Reporter(SRC $address, DST 224.0.0.22)
+
+	igmp_states::IGMPStates(SRC $address, DST 224.0.0.22);
+
+	reporter::Reporter(STATES igmp_states)
 		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
 		-> output;
 }

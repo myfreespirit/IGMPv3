@@ -14,7 +14,7 @@ Reporter::Reporter(){}
 Reporter::~ Reporter(){}
 
 int Reporter::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_source, "DST", cpkM, cpIPAddress, &_destination, cpEnd) < 0) return -1;
+	if (cp_va_kparse(conf, this, errh, "STATES", cpkM, cpElementCast, "IGMPStates", &_states, cpEnd) < 0) return -1;
 	return 0;
 }
 
@@ -41,8 +41,8 @@ Packet* Reporter::createJoinReport(IPAddress groupAddress)
 	iph->ip_len = htons(q->length());
 	iph->ip_p = IP_PROTO_IGMP;
 	iph->ip_ttl = 1;
-	iph->ip_src = _source;
-	iph->ip_dst = _destination;
+	iph->ip_src = _states->_source;
+	iph->ip_dst = _states->_destination;
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
     Report* report = (Report *) (iph + 1);
@@ -57,7 +57,7 @@ Packet* Reporter::createJoinReport(IPAddress groupAddress)
     groupRecord->multicast_address = groupAddress;
 
 	report->checksum = click_in_cksum((unsigned char*) report, sizeof(Report) + sizeof(GroupRecord));
-    q->set_dst_ip_anno(_destination);
+    q->set_dst_ip_anno(_states->_destination);
 
 	return q;
 }

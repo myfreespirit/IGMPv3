@@ -1,6 +1,8 @@
 #ifndef CLICK_REPORTER_HH
 #define CLICK_REPORTER_HH
 #include <click/element.hh>
+#include "igmpstates.hh"
+
 
 CLICK_DECLS
 
@@ -23,8 +25,7 @@ public:
 	static int joinGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
 	void add_handlers();
 private:
-	IPAddress _source;
-	IPAddress _destination;
+	IGMPStates* _states;
 };
 
 
