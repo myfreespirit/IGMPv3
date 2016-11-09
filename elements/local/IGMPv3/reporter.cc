@@ -4,6 +4,7 @@
 
 #include "reporter.hh"
 #include "messages.hh"
+#include "states/interfacestate.hh"
 
 #include <clicknet/ether.h>
 #include <clicknet/ip.h>
@@ -65,9 +66,35 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 {
 	Reporter* me = (Reporter *) e;
 
-	IPAddress groupAddress;
-	if (cp_va_kparse(conf, me, errh, "GROUP_ADDRESS", cpkP, cpIPAddress, &groupAddress, cpEnd) < 0)
+	unsigned int port = 1234;
+	unsigned int interface = 0;
+	FilterMode filter = EXCLUDE;
+	String sFilter;
+	Vector<String>* vSources;
+	std::set<String> sources;
+
+	IPAddress groupAddress = IPAddress("225.1.1.1");
+
+	if (cp_va_kparse(conf, me, errh,
+			"PORT", cpkN, cpUnsigned, &port,
+			"INTERFACE", cpkN, cpUnsigned, &interface,
+			"GROUP", cpkN, cpIPAddress, &groupAddress,
+			"FILTER", cpkN, cpString, &sFilter,
+			"SRC", cpkN, cpArguments, &vSources,
+			cpEnd) < 0)
 		return -1;
+
+	if(sFilter == "INCLUDE")
+		filter = INCLUDE;
+	click_chatter("%d",vSources->size());
+
+	for(int i=0; i<vSources->size(); i++){
+		//sources.insert(vSources->at(i));
+		click_chatter("%s",vSources->at(i).c_str());
+	}
+
+
+
 
 	me->push(0, me->createJoinReport(groupAddress));
 	return 0;
