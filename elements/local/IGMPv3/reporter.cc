@@ -70,7 +70,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 	unsigned int interface = 0;
 	FilterMode filter = EXCLUDE;
 	String sFilter;
-	Vector<String>* vSources;
+	Vector<String> vSources;
 	std::set<String> sources;
 
 	IPAddress groupAddress = IPAddress("225.1.1.1");
@@ -86,15 +86,11 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 
 	if(sFilter == "INCLUDE")
 		filter = INCLUDE;
-	click_chatter("%d",vSources->size());
 
-	for(int i=0; i<vSources->size(); i++){
-		//sources.insert(vSources->at(i));
-		click_chatter("%s",vSources->at(i).c_str());
+	for(int i=0; i<vSources.size(); i++){
+		sources.insert(vSources.at(i));
+		click_chatter("%s",vSources.at(i).c_str());
 	}
-
-
-
 
 	me->push(0, me->createJoinReport(groupAddress));
 	return 0;
