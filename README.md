@@ -22,7 +22,9 @@ This will invoke our handlers on the click script. To verify the results use `wi
 
 Example files | Comments
 --- | ---
-`joins/report-exclude-none` | generates a join report for a given multicast host address without filtering sources
+`joins/report-default-values` | generates a Join IGMP Report packet for group address 225.1.1.1 with **default values** 
+`joins/report-exclude-mode` | another report message for **given** socket, interface, group and sources list in **EXCLUDE** mode
+`joins/report-include-mode` | another report message for **given** socket, interface, group and sources list in **INCLUDE** mode
 
 # Authors
 Eduard Besjentsev  

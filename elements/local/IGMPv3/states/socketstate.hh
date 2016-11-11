@@ -3,9 +3,19 @@
 
 #include "interfacestate.hh"
 
-class SocketState: public InterfaceState{
+// RFC 3376 page 5
+class SocketState: public InterfaceState {
 public:
-	int _interface;
+	SocketState() : InterfaceState(), _interface(0)
+	{
+	}
+
+	SocketState(unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources)
+	: InterfaceState(groupAddress, filter, sources), _interface(interface)
+   	{
+   	}
+
+	unsigned int _interface;
 };
 
 #endif
