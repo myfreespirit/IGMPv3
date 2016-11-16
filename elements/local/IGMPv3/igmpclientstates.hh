@@ -36,7 +36,7 @@ public:
 	IPAddress _source;
 	IPAddress _destination;
 	HashTable<int, Vector<SocketState> > _socketStates;
-	Vector<InterfaceState> _interfaceStates;
+	Vector<Vector<InterfaceState> >_interfaceStates;
 };
 
 
