@@ -25,7 +25,7 @@ void Reporter::push(int, Packet *p) {
 
 bool Reporter::checkExcludeMode(unsigned int interface, IPAddress groupAddress)
 {
-	HashTable<int, Vector<SocketState> >::const_iterator it =_states->_socketStates.begin();
+	HashTable<int, Vector<SocketState> >::const_iterator it = _states->_socketStates.begin();
 	for(;it != _states->_socketStates.end(); it++ ){
 		Vector<SocketState> sStates = it.value();
 
@@ -62,28 +62,30 @@ void Reporter::saveSocketState(unsigned int port, unsigned int interface, IPAddr
 		bool isPresent = false;
 		for(Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); it++){
 			if(it->_interface == interface && it->_groupAddress == groupAddress){
-				it->_filter = filter;
 				std::set<String> excludeSources;
 				std::set<String> includeSources;
 
 				if(filter == MODE_IS_INCLUDE){
 					includeSources = sources;
+					// if it->_filter is exclude it must remain exclude
+					// if it's include, we don't have to update it
 				}
 				else{
 					excludeSources = sources;
+					// if filter is include, then we need to update it->_filter to exclude
+					it->_filter = filter;
 				}
-
-
 				this->getSourceLists(interface, groupAddress, port, excludeSources, includeSources);
+
 				if(this->checkExcludeMode(interface, groupAddress)){
 					it->_sources = this->_difference(excludeSources, includeSources);
 				}
 				else{
 					it->_sources = includeSources;
 				}
+
 				isPresent = true;
 				click_chatter("Updated socket state entry for interface %u and group %s", interface, groupAddress.unparse().c_str());
-
 				break;
 			}
 		}
@@ -98,8 +100,6 @@ void Reporter::saveSocketState(unsigned int port, unsigned int interface, IPAddr
 			vCopySocketStates.push_back(newState);
 			click_chatter("Added socket state entry for interface %u and group %s", interface, groupAddress.unparse().c_str());
 		}
-
-
 	}
 
 	_states->_socketStates[port] = vCopySocketStates;
@@ -111,17 +111,12 @@ std::set<String> Reporter::_intersect(std::set<String> a, std::set<String> b)
 	for(std::set<String>::iterator it=a.begin(); it != a.end(); it++){
 		for(std::set<String>::iterator it2=b.begin(); it2 != b.end(); it2++){
 			if((*it) == (*it2)){
-				result.insert(it2,*it2);
+				result.insert(result.end(),*it2);
 			}
 		}
 
 	}
 
-	click_chatter("%d,%d,%d", result.size(), a.size(), b.size());
-
-		for(std::set<String>::iterator it=result.begin(); it != result.end(); it++){
-			click_chatter("%s", it->c_str());
-		}
 	return result;
 }
 
@@ -151,11 +146,39 @@ std::set<String> Reporter::_difference(std::set<String> a, std::set<String> b)
 			}
 		}
 		if(!foundMatch){
-			result.insert(it, *it);
+			result.insert(result.end(), *it);
 		}
-
 	}
+
 	return result;
+}
+
+void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
+				std::set<String>& excludeSources, std::set<String>& includeSources)
+{
+	bool isModeExclude = false;
+	for (HashTable<int, Vector<SocketState> >::const_iterator it = _states->_socketStates.begin(); it != _states->_socketStates.end(); ++it) {
+		for (int i = 0; i < it.value().size(); i++) {
+			SocketState state = it.value().at(i);
+			if (state._interface == interface && state._groupAddress == groupAddress) {
+				if (state._filter == MODE_IS_EXCLUDE) {
+					if (!isModeExclude && excludeSources.size() == 0) {
+						// first entry for EXCLUDE filter mode (to prevent intersection on empty set)
+						excludeSources.insert(state._sources.begin(),
+								state._sources.end());
+						isModeExclude = true;
+					} else {
+						// intersection of source lists for EXCLUDE filter mode
+						excludeSources = this->_intersect(excludeSources,
+								state._sources);
+					}
+				} else {
+					// union of source lists for INCLUDE filter mode
+					includeSources = this->_union(includeSources, state._sources);
+				}
+			}
+		}
+	}
 }
 
 void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
@@ -168,19 +191,18 @@ void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 		if (it->_interface == interface && it->_groupAddress == groupAddress) {
 			if (it->_filter == MODE_IS_EXCLUDE) {
 				if (!isModeExclude && excludeSources.size() == 0) {
-					// first entry for EXCLUDE filter mode
+					// first entry for EXCLUDE filter mode (to prevent intersection on empty set)
 					excludeSources.insert(it->_sources.begin(),
 							it->_sources.end());
 					isModeExclude = true;
 				} else {
-					std::set < String > temp;
-					// intersection of source lists for EXCLUDE filter mod
+					// intersection of source lists for EXCLUDE filter mode
 					excludeSources = this->_intersect(excludeSources,
 							it->_sources);
-					//excludeSources = temp;
 				}
 			} else {
-				includeSources = this->_union(includeSources, it->_sources); // union of source lists for INCLUDE filter mode
+				// union of source lists for INCLUDE filter mode
+				includeSources = this->_union(includeSources, it->_sources);
 			}
 		}
 	}
@@ -188,11 +210,9 @@ void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 
 // RFC 3376 pages 5-7, 20 (consider "non-existent" state for joins / leaves)
 void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources) {
-
 	std::set<String> excludeSources;
 	std::set<String> includeSources;
-
-	getSourceLists(interface, groupAddress, port, excludeSources, includeSources);
+	getSourceLists(interface, groupAddress, excludeSources, includeSources);
 
 	InterfaceState state;
 	state._groupAddress = groupAddress;
@@ -206,21 +226,18 @@ void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPA
 	}
 
 	if (_states->_interfaceStates.size() > interface) {
-
-		for(int i=0; i<_states->_interfaceStates.at(interface).size();i++){
+		for(int i = 0; i < _states->_interfaceStates.at(interface).size(); i++){
 			if(_states->_interfaceStates.at(interface).at(i)._groupAddress == groupAddress){
 				_states->_interfaceStates.at(interface).at(i) = state;
 				return;
 			}
 		}
 
-		_states->_interfaceStates.at(interface).push_back(state) ;
-		//_states->_interfaceStates.at(interface).push_back(state);
+		_states->_interfaceStates.at(interface).push_back(state);
 	} else {
 		//_states->_interfaceStates.at(interface).insert(_states->_interfaceStates.at(interface).begin() + interface, state);  // TODO verify it inserts the state at the right place
 		_states->_interfaceStates.resize(interface + 1);
 		_states->_interfaceStates.at(interface).push_back(state);
-
 	}
 }
 
