@@ -2,8 +2,6 @@
 #include <click/confparse.hh>
 #include <click/error.hh>
 
-#include <string>
-
 #include "igmpclientstates.hh"
 
 
