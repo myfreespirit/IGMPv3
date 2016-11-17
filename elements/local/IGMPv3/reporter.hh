@@ -21,11 +21,14 @@ public:
 	void push(int, Packet*);
 	
 	Packet* createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources);
+	Packet* createLeaveReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources);
 
 	/**
 	 * handlers
 	 */
 	static int joinGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
+	static int leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
+	
 	void add_handlers();
 
 private:

@@ -294,12 +294,46 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
     groupRecord->multicast_address = groupAddress;
 	// TODO source list
 	// TODO packetsize
+	
+	// TODO
+	// igmpclientstates::getAmountOfSources
+	//_states->_interfaceState.at(interface)
 
 	report->checksum = click_in_cksum((unsigned char*) report, messageSize);
 
     q->set_dst_ip_anno(_states->_destination);
 
 	return q;
+}
+
+int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+	Reporter* me = (Reporter *) e;
+
+	// default values for arguments
+	unsigned int port = 1234;
+	unsigned int interface = 0;
+	IPAddress groupAddress = IPAddress("225.1.1.1");
+	FilterMode filter = MODE_IS_INCLUDE;
+	std::set<String> sources;
+
+	// overwrite given arguments
+	if (cp_va_kparse(conf, me, errh,
+			"PORT", cpkN, cpUnsigned, &port,
+			"INTERFACE", cpkN, cpUnsigned, &interface,
+			"GROUP", cpkN, cpIPAddress, &groupAddress,
+			cpEnd) < 0)
+		return -1;
+
+	if (interface != 0) {
+		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
+		return -1;
+	}
+
+	// TODO verify group address is a valid mcast address
+
+	me->push(0, me->createJoinReport(port, interface, groupAddress, filter, sources));
+	return 0;
 }
 
 int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
@@ -350,6 +384,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 void Reporter::add_handlers()
 {
 	add_write_handler("join_group", &joinGroup, (void *) 0);
+	add_write_handler("leave_group", &leaveGroup, (void *) 0);
 }
 
 
