@@ -292,6 +292,8 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
     groupRecord->aux_data_len = 0;
     groupRecord->number_of_sources = htons(0);  // TODO
     groupRecord->multicast_address = groupAddress;
+
+//	groupRecord->source_addresses = _states->_interfaceStates.at(interface).at(0)._sources;
 	// TODO source list
 	// TODO packetsize
 	
@@ -359,10 +361,12 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 			cpEnd) < 0)
 		return -1;
 
+	/* // TEST DISABLED TO TEST WHETHER CLIENT IGNORES MULTICAST PACKETS ON OTHER INTERFACES
 	if (interface != 0) {
 		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
 		return -1;
 	}
+	*/
 
 	// TODO verify group address is a valid mcast address
 

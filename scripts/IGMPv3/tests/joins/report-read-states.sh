@@ -9,6 +9,9 @@ sleep 1
 # Join / empty source list 
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.1.1.1, FILTER EXCLUDE"
 
+# Join on different network
+echo "write reporter.join_group PORT 1111, INTERFACE 1, GROUP 225.1.1.1, FILTER EXCLUDE"
+
 # INCLUDE multiple sources, tests union
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 3.3.3.3"
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 2.2.2.2"
