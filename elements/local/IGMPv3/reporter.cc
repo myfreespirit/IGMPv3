@@ -210,6 +210,19 @@ void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 
 // RFC 3376 pages 5-7, 20 (consider "non-existent" state for joins / leaves)
 void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources) {
+	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
+		Vector<InterfaceState> vInterfaces = _states->_interfaceStates.at(interface);
+		Vector<InterfaceState>::iterator it;
+		for (it = vInterfaces.begin(); it != vInterfaces.end(); it++) {
+			if (it->_groupAddress == groupAddress) {
+				vInterfaces.erase(it);
+				_states->_interfaceStates.at(interface) = vInterfaces;
+				break;
+			}
+		}
+		return;
+	}
+
 	std::set<String> excludeSources;
 	std::set<String> includeSources;
 	getSourceLists(interface, groupAddress, excludeSources, includeSources);
@@ -247,6 +260,7 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	int headerSize = sizeof(click_ip);
 	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord);
 	int packetSize = headerSize + messageSize;
+
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
