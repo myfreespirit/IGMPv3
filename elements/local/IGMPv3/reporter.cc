@@ -10,15 +10,23 @@
 #include <clicknet/ip.h>
 
 CLICK_DECLS
-Reporter::Reporter(){}
-Reporter::~ Reporter(){}
 
-int Reporter::configure(Vector<String> &conf, ErrorHandler *errh) {
+Reporter::Reporter()
+{
+}
+
+Reporter::~ Reporter()
+{
+}
+
+int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
+{
 	if (cp_va_kparse(conf, this, errh, "CLIENT_STATES", cpkM, cpElementCast, "IGMPClientStates", &_states, cpEnd) < 0) return -1;
 	return 0;
 }
 
-void Reporter::push(int, Packet *p) {
+void Reporter::push(int, Packet *p)
+{
 	click_chatter("Report sent of size %d",p->length());
 	output(0).push(p);
 }
@@ -26,12 +34,12 @@ void Reporter::push(int, Packet *p) {
 bool Reporter::checkExcludeMode(unsigned int interface, IPAddress groupAddress)
 {
 	HashTable<int, Vector<SocketState> >::const_iterator it = _states->_socketStates.begin();
-	for(;it != _states->_socketStates.end(); it++ ){
+	for (; it != _states->_socketStates.end(); it++) {
 		Vector<SocketState> sStates = it.value();
 
-		for(unsigned int i=0;i<sStates.size();i++){
-			if(sStates.at(i)._interface == interface && sStates.at(i)._groupAddress == groupAddress){
-				if(sStates.at(i)._filter == MODE_IS_EXCLUDE){
+		for (unsigned int i = 0; i < sStates.size(); i++) {
+			if (sStates.at(i)._interface == interface && sStates.at(i)._groupAddress == groupAddress) {
+				if (sStates.at(i)._filter == MODE_IS_EXCLUDE) {
 					return true;
 				}
 			}
@@ -45,7 +53,6 @@ bool Reporter::checkExcludeMode(unsigned int interface, IPAddress groupAddress)
 void Reporter::saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter,
 		std::set<String> sources)
 {
-	// update socket state
 	Vector<SocketState> vCopySocketStates = _states->_socketStates.get(port);
 	
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
@@ -53,64 +60,44 @@ void Reporter::saveSocketState(unsigned int port, unsigned int interface, IPAddr
 		for (Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); ++it) {
 			if (it->_interface == interface && it->_groupAddress == groupAddress) {
 				vCopySocketStates.erase(it);
-				click_chatter("Removed socket state entry for interface %u and group %s", interface, groupAddress.unparse().c_str());
+				click_chatter("Removed socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 				break;
 			}
 		}
 	} else {
 		// update entry matching given interface and groupAddress or create a new one if not present
 		bool isPresent = false;
-		for(Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); it++){
-			if(it->_interface == interface && it->_groupAddress == groupAddress){
-				std::set<String> excludeSources;
-				std::set<String> includeSources;
-
-				if(filter == MODE_IS_INCLUDE){
-					includeSources = sources;
-					// if it->_filter is exclude it must remain exclude
-					// if it's include, we don't have to update it
-				}
-				else{
-					excludeSources = sources;
-					// if filter is include, then we need to update it->_filter to exclude
-					it->_filter = filter;
-				}
-				this->getSourceLists(interface, groupAddress, port, excludeSources, includeSources);
-
-				if(this->checkExcludeMode(interface, groupAddress)){
-					it->_sources = this->_difference(excludeSources, includeSources);
-				}
-				else{
-					it->_sources = includeSources;
-				}
-
+		for (Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); it++) {
+			if (it->_interface == interface && it->_groupAddress == groupAddress) {
+				it->_filter = filter;
+				it->_sources = sources;
 				isPresent = true;
-				click_chatter("Updated socket state entry for interface %u and group %s", interface, groupAddress.unparse().c_str());
+				click_chatter("Updated socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 				break;
 			}
 		}
 
-
-		if(!isPresent){
+		if (!isPresent) {
 			SocketState newState;
 			newState._interface = interface;
 			newState._groupAddress = groupAddress;
 			newState._filter = filter;
 			newState._sources = sources;
 			vCopySocketStates.push_back(newState);
-			click_chatter("Added socket state entry for interface %u and group %s", interface, groupAddress.unparse().c_str());
+			click_chatter("Added socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 		}
 	}
 
+	// update socket state
 	_states->_socketStates[port] = vCopySocketStates;
 }
 
 std::set<String> Reporter::_intersect(std::set<String> a, std::set<String> b)
 {
 	std::set<String> result;
-	for(std::set<String>::iterator it=a.begin(); it != a.end(); it++){
-		for(std::set<String>::iterator it2=b.begin(); it2 != b.end(); it2++){
-			if((*it) == (*it2)){
+	for (std::set<String>::iterator it = a.begin(); it != a.end(); it++) {
+		for (std::set<String>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
+			if ((*it) == (*it2)) {
 				result.insert(result.end(),*it2);
 			}
 		}
@@ -123,11 +110,11 @@ std::set<String> Reporter::_intersect(std::set<String> a, std::set<String> b)
 std::set<String> Reporter::_union(std::set<String> a, std::set<String> b)
 {
 	std::set<String> result;
-	for(std::set<String>::iterator it=a.begin(); it != a.end(); it++){
+	for (std::set<String>::iterator it = a.begin(); it != a.end(); it++) {
 		result.insert(result.end(),*it);
 	}
 
-	for(std::set<String>::iterator it2=b.begin(); it2 != b.end(); it2++){
+	for (std::set<String>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
 		result.insert(result.end(),*it2);
 	}
 
@@ -137,15 +124,15 @@ std::set<String> Reporter::_union(std::set<String> a, std::set<String> b)
 std::set<String> Reporter::_difference(std::set<String> a, std::set<String> b)
 {
 	std::set<String> result;
-	for(std::set<String>::iterator it=a.begin(); it != a.end(); it++){
+	for (std::set<String>::iterator it = a.begin(); it != a.end(); it++) {
 		bool foundMatch = false;
-		for(std::set<String>::iterator it2=b.begin(); it2 != b.end(); it2++){
-			if((*it) == (*it2)){
+		for (std::set<String>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
+			if ((*it) == (*it2)) {
 				foundMatch = true;
 				break;
 			}
 		}
-		if(!foundMatch){
+		if (!foundMatch) {
 			result.insert(result.end(), *it);
 		}
 	}
@@ -153,6 +140,7 @@ std::set<String> Reporter::_difference(std::set<String> a, std::set<String> b)
 	return result;
 }
 
+// gather exclude and include source lists by considering all entries in the socket states for given (interface, groupAddress) record
 void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 				std::set<String>& excludeSources, std::set<String>& includeSources)
 {
@@ -164,13 +152,11 @@ void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 				if (state._filter == MODE_IS_EXCLUDE) {
 					if (!isModeExclude && excludeSources.size() == 0) {
 						// first entry for EXCLUDE filter mode (to prevent intersection on empty set)
-						excludeSources.insert(state._sources.begin(),
-								state._sources.end());
+						excludeSources.insert(state._sources.begin(), state._sources.end());
 						isModeExclude = true;
 					} else {
 						// intersection of source lists for EXCLUDE filter mode
-						excludeSources = this->_intersect(excludeSources,
-								state._sources);
+						excludeSources = this->_intersect(excludeSources, state._sources);
 					}
 				} else {
 					// union of source lists for INCLUDE filter mode
@@ -181,35 +167,11 @@ void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
 	}
 }
 
-void Reporter::getSourceLists(unsigned int interface, IPAddress groupAddress,
-		unsigned int port, std::set<String>& excludeSources, std::set<String>& includeSources)
-{
-	Vector<SocketState> vCopySocketStates = _states->_socketStates.get(port);
-	bool isModeExclude = false;
-	for (Vector<SocketState>::const_iterator it = vCopySocketStates.begin();
-			it != vCopySocketStates.end(); ++it) {
-		if (it->_interface == interface && it->_groupAddress == groupAddress) {
-			if (it->_filter == MODE_IS_EXCLUDE) {
-				if (!isModeExclude && excludeSources.size() == 0) {
-					// first entry for EXCLUDE filter mode (to prevent intersection on empty set)
-					excludeSources.insert(it->_sources.begin(),
-							it->_sources.end());
-					isModeExclude = true;
-				} else {
-					// intersection of source lists for EXCLUDE filter mode
-					excludeSources = this->_intersect(excludeSources,
-							it->_sources);
-				}
-			} else {
-				// union of source lists for INCLUDE filter mode
-				includeSources = this->_union(includeSources, it->_sources);
-			}
-		}
-	}
-}
-
 // RFC 3376 pages 5-7, 20 (consider "non-existent" state for joins / leaves)
-void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources) {
+// Instead of re-evaluating the states for all interfaces each time, we will simply update the affected entries.
+void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, std::set<String> sources)
+{
+	// remove old entry on leave
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
 		Vector<InterfaceState> vInterfaces = _states->_interfaceStates.at(interface);
 		Vector<InterfaceState>::iterator it;
@@ -222,12 +184,14 @@ void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPA
 		}
 		return;
 	}
-
+	
 	std::set<String> excludeSources;
 	std::set<String> includeSources;
+	// gather new source list for given (interface, groupAddress) pair
 	getSourceLists(interface, groupAddress, excludeSources, includeSources);
 
 	InterfaceState state;
+	// prepare updated state
 	state._groupAddress = groupAddress;
 	if (checkExcludeMode(interface, groupAddress)) {
 		state._filter = MODE_IS_EXCLUDE;
@@ -235,20 +199,23 @@ void Reporter::saveInterfaceState(unsigned int port, unsigned int interface, IPA
 		state._sources = this->_difference(excludeSources, includeSources);
 	} else {
 		state._filter = MODE_IS_INCLUDE;
+		// union of source lists from INCLUDE FILTER
 		state._sources = includeSources;
 	}
 
+	// check whether we have sufficient amount of containers for all interfaces
 	if (_states->_interfaceStates.size() > interface) {
-		for(int i = 0; i < _states->_interfaceStates.at(interface).size(); i++){
-			if(_states->_interfaceStates.at(interface).at(i)._groupAddress == groupAddress){
+		// find matching entry and update it
+		for (int i = 0; i < _states->_interfaceStates.at(interface).size(); i++) {
+			if (_states->_interfaceStates.at(interface).at(i)._groupAddress == groupAddress) {
 				_states->_interfaceStates.at(interface).at(i) = state;
 				return;
 			}
 		}
-
+		// in case no such entry was present, add a new one
 		_states->_interfaceStates.at(interface).push_back(state);
 	} else {
-		//_states->_interfaceStates.at(interface).insert(_states->_interfaceStates.at(interface).begin() + interface, state);  // TODO verify it inserts the state at the right place
+		// resize container to support more interfaces and add new state
 		_states->_interfaceStates.resize(interface + 1);
 		_states->_interfaceStates.at(interface).push_back(state);
 	}
@@ -327,10 +294,12 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 			cpEnd) < 0)
 		return -1;
 
+	/* // TEST DISABLED TO TEST WHETHER CLIENT IGNORES MULTICAST PACKETS ON OTHER INTERFACES
 	if (interface != 0) {
 		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
 		return -1;
 	}
+	*/
 
 	// TODO verify group address is a valid mcast address
 

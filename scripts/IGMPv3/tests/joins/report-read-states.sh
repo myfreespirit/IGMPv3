@@ -9,27 +9,38 @@ sleep 1
 # Join / empty source list 
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.1.1.1, FILTER EXCLUDE"
 
-# Join on different network
-echo "write reporter.join_group PORT 1111, INTERFACE 1, GROUP 225.1.1.1, FILTER EXCLUDE"
+# Join on different socket port
+echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.1.1.1, FILTER EXCLUDE, SRC 1.1.1.1"
 
-# INCLUDE multiple sources, tests union
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 3.3.3.3"
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 2.2.2.2"
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 1.1.1.1"
+# Join on different interface 
+echo "write reporter.join_group PORT 1111, INTERFACE 1, GROUP 225.1.1.1, FILTER EXCLUDE, SRC 2.2.2.2"
 
-# EXCLUDE multiple sources, tests intersection
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.3.3.3, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3"
+# INCLUDE multiple sources
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 8.8.8.8, SRC 9.9.9.9"
+# modify INCLUDE sources
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3"
+
+# EXCLUDE multiple sources
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.3.3.3, FILTER EXCLUDE, SRC 7.7.7.7, SRC 8.8.8.8, SRC 9.9.9.9"
+# modify EXCLUDE sources
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.3.3.3, FILTER EXCLUDE, SRC 2.2.2.2, SRC 3.3.3.3"
 
-# different socket, tests difference over all sockets
-echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.4.4.4, FILTER INCLUDE, SRC 3.3.3.3"
-# different socket + INCLUDE mode, tests difference within socket and whether the state keeps EXCLUDE filter mode
-echo "write reporter.join_group PORT 3333, INTERFACE 0, GROUP 225.4.4.4, FILTER EXCLUDE, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
-echo "write reporter.join_group PORT 3333, INTERFACE 0, GROUP 225.4.4.4, FILTER INCLUDE, SRC 4.4.4.4, SRC 5.5.5.5"
+# test union of INCLUDE source lists by constructing interface state
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.4.4.4, FILTER INCLUDE, SRC 1.1.1.1"
+echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.4.4.4, FILTER INCLUDE, SRC 2.2.2.2"
+echo "write reporter.join_group PORT 3333, INTERFACE 0, GROUP 225.4.4.4, FILTER INCLUDE, SRC 3.3.3.3"
+
+# test intersection of EXCLUDE source lists by constructing interface state
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.5.5.5, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
+echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.5.5.5, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3"
+
+# test difference between intersection (EXCLUDE) and union (INCLUDE) source lists by constructing interface state
+echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.6.6.6, FILTER INCLUDE, SRC 1.1.1.1, SRC 2.2.2.2"
+echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.6.6.6, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
 
 # Join group and immediately leave it
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.6.6.6, FILTER EXCLUDE, SRC 1.1.1.1"
-echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.6.6.6, FILTER INCLUDE"
+echo "write reporter.join_group GROUP 225.7.7.7"
+echo "write reporter.leave_group GROUP 225.7.7.7"
 
 sleep 1
 

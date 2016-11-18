@@ -65,33 +65,30 @@ String IGMPClientStates::interfaceStates(Element* e, void* thunk)
 	String output;
 	
 	output += "\n";
-	output += " I | \t GROUP | FILTER  | SOURCES \n";
+	output += "\t \t \t I | \t GROUP \t | FILTER  | SOURCES \n";
 
 	for (int i = 0; i < me->_interfaceStates.size(); i++) {
 		Vector<InterfaceState> vStates = me->_interfaceStates.at(i);
 		
 		for(int j=0; j < vStates.size(); j++){
 			InterfaceState state = vStates.at(j);
-			output += " " + String(i) + " | ";
-		   	output += state._groupAddress.unparse() + " | ";
+			output += "\t \t \t " + String(i) + " | ";
+		   	output += "  " + state._groupAddress.unparse() + " | ";
 			output += (state._filter == MODE_IS_EXCLUDE) ? "EXCLUDE | " : "INCLUDE | ";
 			output += (!state._sources.empty()) ? *(state._sources.begin()) : " NONE";
 			output += "\n";
 			if (state._sources.size() > 1) {
 				for (std::set<String>::const_iterator it = ++(state._sources.begin()); it != state._sources.end(); ++it) {
-					//output += "   | \t \t | \t  |  ";
-					output += " " + String(i) + " | ";
-				   	output += state._groupAddress.unparse() + " | ";
-					output += (state._filter == MODE_IS_EXCLUDE) ? "EXCLUDE | " : "INCLUDE | ";
+					output += "\t \t \t   | \t \t | \t   | ";
+					//output += " " + String(i) + " | ";
+				   	//output += state._groupAddress.unparse() + " | ";
+					//output += (state._filter == MODE_IS_EXCLUDE) ? "EXCLUDE | " : "INCLUDE | ";
 					output += *it + "\n";
 				}
 			}
 			output += "\n";
 
 		}
-
-
-
 	}
 
 	output += "\n";
