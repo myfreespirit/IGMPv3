@@ -3,6 +3,8 @@
 // Packets for the network are put on output 0
 // Packets for the host are put on output 1
 
+require(library definitions.click)
+
 elementclass Client {
 	$address, $gateway |
 
@@ -48,9 +50,9 @@ elementclass Client {
 	in_cl[2]
 		-> ip;
 
-	igmp_states::IGMPStates(SRC $address, DST 224.0.0.22);
+	igmp_client_states::IGMPClientStates(SRC $address, DST all_routers_multicast_address);
 
-	reporter::Reporter(STATES igmp_states)
+	reporter::Reporter(CLIENT_STATES igmp_client_states)
 		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
 		-> output;
 }
