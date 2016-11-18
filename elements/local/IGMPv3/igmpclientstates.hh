@@ -4,10 +4,11 @@
 #include <click/element.hh>
 #include <click/hashtable.hh>
 #include <click/vector.hh>
-
+#include <set>
 #include "states/interfacestate.hh"
 #include "states/socketstate.hh"
 
+using std::set;
 
 CLICK_DECLS
 
@@ -22,6 +23,11 @@ public:
 	int configure(Vector<String>&, ErrorHandler*);
 		
 	void push(int, Packet*);
+
+	bool checkExcludeMode(unsigned int interface, IPAddress groupAddress);
+	void getSourceLists(unsigned int interface, IPAddress groupAddress, set<String>& excludeSources, set<String>& includeSources);
+	void saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
+	void saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 
 	/**
 	 * handlers
