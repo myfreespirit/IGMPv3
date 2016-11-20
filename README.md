@@ -25,6 +25,7 @@ Example files | Comments
 `joins/report-default-values` | generates a Join IGMP Report packet for group address 225.1.1.1 with **default values** 
 `joins/report-exclude-mode` | another report message for **given** socket, interface, group and sources list in **EXCLUDE** mode
 `joins/report-include-mode` | another report message for **given** socket, interface, group and sources list in **INCLUDE** mode
+`joins/report-read-states` | lots of demonstrations / tests of different scenarios with output both for socket and interface states
 
 # Authors
 Eduard Besjentsev  

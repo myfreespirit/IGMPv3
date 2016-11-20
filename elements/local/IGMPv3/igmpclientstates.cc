@@ -123,20 +123,6 @@ void IGMPClientStates::saveSocketState(unsigned int port, unsigned int interface
 // Instead of re-evaluating the states for all interfaces each time, we will simply update the affected entries.
 void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
 {
-	// remove old entry on leave
-	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
-		Vector<InterfaceState> vInterfaces = _interfaceStates.at(interface);
-		Vector<InterfaceState>::iterator it;
-		for (it = vInterfaces.begin(); it != vInterfaces.end(); it++) {
-			if (it->_groupAddress == groupAddress) {
-				vInterfaces.erase(it);
-				_interfaceStates.at(interface) = vInterfaces;
-				break;
-			}
-		}
-		return;
-	}
-	
 	set<String> excludeSources;
 	set<String> includeSources;
 	// gather new source list for given (interface, groupAddress) pair
@@ -155,6 +141,24 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 		state._sources = includeSources;
 	}
 
+	// remove old entry on leave
+	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
+		Vector<InterfaceState> vInterfaces = _interfaceStates.at(interface);
+		Vector<InterfaceState>::iterator it;
+		for (it = vInterfaces.begin(); it != vInterfaces.end(); it++) {
+			if (it->_groupAddress == groupAddress) {
+				vInterfaces.erase(it);
+				_interfaceStates.at(interface) = vInterfaces;
+				break;
+			}
+		}
+		// exception, we might need to rollback to previous interface state (backtracked above)
+		if (state._filter != MODE_IS_INCLUDE || includeSources.size() > 0) {
+			_interfaceStates.at(interface).push_back(state);
+		}
+		return;
+	}
+	
 	// check whether we have sufficient amount of containers for all interfaces
 	if (_interfaceStates.size() > interface) {
 		// find matching entry and update it

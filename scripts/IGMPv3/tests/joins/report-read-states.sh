@@ -38,9 +38,25 @@ echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.5.5.5, FILTER 
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.6.6.6, FILTER INCLUDE, SRC 1.1.1.1, SRC 2.2.2.2"
 echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.6.6.6, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
 
+# Ignore leaves on non members
+echo "write reporter.join_group GROUP 225.7.7.7, FILTER INCLUDE, SRC 1.1.1.1"
+echo "write reporter.leave_group PORT 3333, GROUP 225.7.7.7"
+echo "write reporter.leave_group INTERFACE 1, GROUP 225.7.7.7"
+
+# From EXCLUDE back to INCLUDE
+echo "write reporter.join_group PORT 1111, GROUP 225.8.8.8, FILTER INCLUDE, SRC 1.1.1.1"
+echo "write reporter.join_group PORT 2222, GROUP 225.8.8.8, FILTER EXCLUDE, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
+echo "write reporter.leave_group PORT 2222, GROUP 225.8.8.8"
+
+# Back to old interface state, with extra SRC address (1.1.1.1)
+echo "write reporter.join_group PORT 1111, GROUP 225.9.9.9, FILTER INCLUDE, SRC 4.4.4.4"
+echo "write reporter.join_group PORT 2222, GROUP 225.9.9.9, FILTER EXCLUDE, SRC 1.1.1.1, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
+echo "write reporter.join_group PORT 3333, GROUP 225.9.9.9, FILTER EXCLUDE, SRC 2.2.2.2, SRC 3.3.3.3, SRC 4.4.4.4"
+echo "write reporter.leave_group PORT 3333, GROUP 225.9.9.9"
+
 # Join group and immediately leave it
-echo "write reporter.join_group GROUP 225.7.7.7"
-echo "write reporter.leave_group GROUP 225.7.7.7"
+echo "write reporter.join_group GROUP 225.10.10.10"
+echo "write reporter.leave_group GROUP 225.10.10.10"
 
 sleep 1
 
