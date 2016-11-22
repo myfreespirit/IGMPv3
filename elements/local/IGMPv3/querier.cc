@@ -70,7 +70,7 @@ int Querier::generalQueryHandler(const String &conf, Element* e, void* thunk, Er
 	}
 
 	me->push(1, me->createGeneralQueryPacket(me->_states->_source, me->_states->_subnet1));
-	me->push(2, me->createGeneralQueryPacket(me->_states->_source, me->_states->_subnet2));
+	//me->push(2, me->createGeneralQueryPacket(me->_states->_source, me->_states->_subnet2));
 }
 
 

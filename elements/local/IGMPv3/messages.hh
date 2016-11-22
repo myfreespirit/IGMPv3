@@ -1,6 +1,5 @@
 #ifndef CLICK_MESSAGES_HH
 #define CLICK_MESSAGES_HH
-#include <clicknet/ip.h>
 
 struct Query {
 	uint8_t type;
@@ -12,7 +11,7 @@ struct Query {
 	unsigned QRV:(3);
 	uint8_t QQIC;
 	uint16_t number_of_sources;
-	in_addr source_addresses[];
+	in_addr source_addresses[0];
 };
 
 struct GroupRecord {
@@ -20,7 +19,7 @@ struct GroupRecord {
     uint8_t aux_data_len;
     uint16_t number_of_sources;
     in_addr multicast_address;
-	in_addr source_addresses[];
+	in_addr source_addresses[0];
 	uint32_t aux_data[];
 };
 

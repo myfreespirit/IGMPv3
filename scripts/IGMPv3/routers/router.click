@@ -11,6 +11,7 @@
 //	[1]: packets sent to the 192.168.2.0/24 network
 //	[2]: packets sent to the 192.168.3.0/24 network
 //  [3]: packets destined for the router itself
+require(library definitions.click)
 
 elementclass Router {
 	$server_address, $client1_address, $client2_address |
@@ -170,5 +171,19 @@ elementclass Router {
 	client2_frag[1]
 		-> ICMPError($client2_address, unreachable, needfrag)
 		-> rt;
+	
+	igmp_router_states::IGMPRouterStates(SRC $server_address, DST all_hosts_multicast_address);
+	
+	querier::Querier(ROUTER_STATES igmp_router_states)[1]
+		->EtherEncap(0x0800, $server_address:eth, $client1_address:eth)  
+		-> [1]output;
+	
+	querier[0]
+	//	-> EtherEncap(0x0800, $server_address:eth, $client1_address:eth)
+	//	-> [1]output;	
+		-> Discard;
+	//querier[2]
+	//	-> EtherEncap(0x0800, $server_address:eth, $client2_address:eth)
+	//	-> [2]output;
 }
 
