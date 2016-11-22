@@ -23,8 +23,7 @@ public:
 	 * data members
 	 */
 	IPAddress _source;
-	IPAddress _subnet1;
-	IPAddress _subnet2;
+	IPAddress _destination;
 };
 
 

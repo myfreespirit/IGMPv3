@@ -20,8 +20,8 @@ int IGMPRouterStates::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh,
 			"SRC", cpkM, cpIPAddress, &_source,
-			"SUB1", cpkM, cpIPAddress, &_subnet1,
-			"SUB2", cpkM, cpIPAddress, &_subnet2,
+			"DST", cpkM, cpIPAddress, &_destination,
+			//"SUB2", cpkM, cpIPAddress, &_subnet2,
 			cpEnd) < 0)
 		return -1;
 
