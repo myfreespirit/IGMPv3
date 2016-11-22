@@ -1,4 +1,3 @@
-
 #include <click/config.h>
 #include <click/confparse.hh>
 #include <click/error.hh>
@@ -21,7 +20,6 @@ int IGMPRouterStates::configure(Vector<String> &conf, ErrorHandler *errh)
 	if (cp_va_kparse(conf, this, errh,
 			"SRC", cpkM, cpIPAddress, &_source,
 			"DST", cpkM, cpIPAddress, &_destination,
-			//"SUB2", cpkM, cpIPAddress, &_subnet2,
 			cpEnd) < 0)
 		return -1;
 

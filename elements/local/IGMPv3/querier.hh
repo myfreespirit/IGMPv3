@@ -1,4 +1,3 @@
-
 #ifndef CLICK_QUERIER_HH
 #define CLICK_QUERIER_HH
 #include <click/element.hh>
@@ -12,16 +11,16 @@ class Querier : public Element {
 		~Querier();
 		
 		const char *class_name() const	{ return "Querier"; }
-		const char *port_count() const	{ return "0/2"; }
+		const char *port_count() const	{ return "0/3"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		
 		void push(int, Packet *);
-		Packet* createGeneralQueryPacket(in_addr src, in_addr dst);
-		//Packet* createReportPacket(in_addr, in_addr);
+		Packet* createGeneralQueryPacket();
 
 		static int generalQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
 		void add_handlers();
+
 		IGMPRouterStates* _states;
 };
 
