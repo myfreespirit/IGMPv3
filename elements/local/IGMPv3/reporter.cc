@@ -24,10 +24,10 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
-void Reporter::push(int, Packet *p)
+void Reporter::push(int port, Packet *p)
 {
 	click_chatter("Report sent of size %d",p->length());
-	output(0).push(p);
+	output(port).push(p);
 }
 
 Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
@@ -70,13 +70,18 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	// find source list of matching interface, group
 	set<String> srcs;
 	Vector<InterfaceState> iStates = _states->_interfaceStates.at(interface);
+	bool isStateRemoved = true;
 	for (Vector<InterfaceState>::const_iterator it = iStates.begin(); it != iStates.end(); it++) {
 		if (it->_groupAddress == groupAddress) {
 			srcs = it->_sources;
 			// TODO that +2 is only needed when client joins particular interface,group,src, not when it responds to a query
 			groupRecord->type = it->_filter + 2;
+			isStateRemoved = false;
 			break;
 		}
+	}
+	if (isStateRemoved) {
+		groupRecord->type = CHANGE_TO_INCLUDE_MODE; 
 	}
     groupRecord->number_of_sources = htons(srcs.size());
 	set<String>::iterator it = srcs.begin();
@@ -120,7 +125,7 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 
 	// TODO verify group address is a valid mcast address
 
-	me->push(0, me->createJoinReport(port, interface, groupAddress, filter, sources));
+	me->push(interface, me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 
@@ -167,7 +172,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 		sources.insert(vSources.at(i));
 	}
 
-	me->push(0, me->createJoinReport(port, interface, groupAddress, filter, sources));
+	me->push(interface, me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 
