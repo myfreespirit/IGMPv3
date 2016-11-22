@@ -20,7 +20,7 @@ struct GroupRecord {
     uint8_t aux_data_len;
     uint16_t number_of_sources;
     in_addr multicast_address;
-	Vector<in_addr> source_addresses;
+	in_addr source_addresses[];
 	Vector<uint32_t> aux_data;
 };
 
@@ -30,7 +30,6 @@ struct Report {
     uint16_t checksum;
     uint16_t reserved_bottom;
 	uint16_t number_of_group_records;
-    //Vector<GroupRecord> group_records;
 };
 
 #endif // CLICK_MESSAGES_HH

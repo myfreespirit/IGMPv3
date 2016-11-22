@@ -64,18 +64,26 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
 
     GroupRecord* groupRecord = (GroupRecord* ) (report + 1);
-    groupRecord->type = 2;  // TODO
     groupRecord->aux_data_len = 0;
-    groupRecord->number_of_sources = htons(0);  // TODO
     groupRecord->multicast_address = groupAddress;
 
-//	groupRecord->source_addresses = _states->_interfaceStates.at(interface).at(0)._sources;
-	// TODO source list
-	// TODO packetsize
-	
-	// TODO
-	// igmpclientstates::getAmountOfSources
-	//_states->_interfaceState.at(interface)
+	// find source list of matching interface, group
+	set<String> srcs;
+	Vector<InterfaceState> iStates = _states->_interfaceStates.at(interface);
+	for (Vector<InterfaceState>::const_iterator it = iStates.begin(); it != iStates.end(); it++) {
+		if (it->_groupAddress == groupAddress) {
+			srcs = it->_sources;
+			// TODO that +2 is only needed when client joins particular interface,group,src, not when it responds to a query
+			groupRecord->type = it->_filter + 2;
+			break;
+		}
+	}
+    groupRecord->number_of_sources = htons(srcs.size());
+	set<String>::iterator it = srcs.begin();
+	for (int i = 0; i < srcs.size(); i++) {
+		groupRecord->source_addresses[i] = IPAddress(*it);
+		std::advance(it, 1);
+	}
 
 	report->checksum = click_in_cksum((unsigned char*) report, messageSize);
 
