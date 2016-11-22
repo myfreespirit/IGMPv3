@@ -13,7 +13,7 @@ echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.1.1.1, FILTER 
 echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.1.1.1, FILTER EXCLUDE, SRC 1.1.1.1"
 
 # Join on different interface 
-echo "write reporter.join_group PORT 1111, INTERFACE 1, GROUP 225.1.1.1, FILTER EXCLUDE, SRC 2.2.2.2"
+#echo "write reporter.join_group PORT 1111, INTERFACE 1, GROUP 225.1.1.1, FILTER EXCLUDE, SRC 2.2.2.2"
 
 # INCLUDE multiple sources
 echo "write reporter.join_group PORT 1111, INTERFACE 0, GROUP 225.2.2.2, FILTER INCLUDE, SRC 8.8.8.8, SRC 9.9.9.9"
@@ -41,7 +41,7 @@ echo "write reporter.join_group PORT 2222, INTERFACE 0, GROUP 225.6.6.6, FILTER 
 # Ignore leaves on non members
 echo "write reporter.join_group GROUP 225.7.7.7, FILTER INCLUDE, SRC 1.1.1.1"
 echo "write reporter.leave_group PORT 3333, GROUP 225.7.7.7"
-echo "write reporter.leave_group INTERFACE 1, GROUP 225.7.7.7"
+#echo "write reporter.leave_group INTERFACE 1, GROUP 225.7.7.7"
 
 # From EXCLUDE back to INCLUDE
 echo "write reporter.join_group PORT 1111, GROUP 225.8.8.8, FILTER INCLUDE, SRC 1.1.1.1"
