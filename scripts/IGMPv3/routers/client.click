@@ -41,7 +41,7 @@ elementclass Client {
 	input
 		-> HostEtherFilter($address)
 		-> ip_igmp_class::IPClassifier(ip proto 2, -)[1]
-		-> IPPrint("router received a packet")
+		-> IPPrint("client received a packet")
 		-> in_cl :: Classifier(12/0806 20/0001, 12/0806 20/0002, 12/0800)
 		-> arp_res :: ARPResponder($address)
 		-> output;

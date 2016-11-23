@@ -24,10 +24,10 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
-void Reporter::push(int port, Packet *p)
+void Reporter::push(int, Packet *p)
 {
-	click_chatter("Report sent of size %d",p->length());
-	output(port).push(p);
+	click_chatter("Received a packet of size %d",p->length());
+	output(0).push(p);
 }
 
 Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
@@ -125,7 +125,7 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 
 	// TODO verify group address is a valid mcast address
 
-	me->push(interface, me->createJoinReport(port, interface, groupAddress, filter, sources));
+	output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 
@@ -172,7 +172,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 		sources.insert(vSources.at(i));
 	}
 
-	me->push(interface, me->createJoinReport(port, interface, groupAddress, filter, sources));
+	output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 
