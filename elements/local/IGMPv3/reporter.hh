@@ -20,9 +20,6 @@ public:
 	int configure(Vector<String>&, ErrorHandler*);
 
 	void push(int, Packet*);
-	
-	Packet* createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
-	Packet* createLeaveReport(unsigned int port, unsigned int interface, IPAddress groupAddress);
 
 	/**
 	 * handlers
@@ -33,6 +30,10 @@ public:
 
 private:
 	IGMPClientStates* _states;
+	void replyToGeneralQuery();
+		
+	Packet* createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
+	Packet* createLeaveReport(unsigned int port, unsigned int interface, IPAddress groupAddress);
 };
 
 

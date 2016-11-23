@@ -52,13 +52,13 @@ elementclass Router {
 	// Input and output paths for interface 1
 	input[1]
 		-> HostEtherFilter($client1_address)
-		-> ip_igmp_class::IPClassifier(ip proto 2, -)[1]
+		-> ip_igmp_class1::IPClassifier(ip proto 2, -)[1]
 		-> IPPrint("router received a packet")
 		-> client1_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client1_address)
 		-> [1]output;
 
-	ip_igmp_class[0]
+	ip_igmp_class1[0]
 		-> IPPrint("Router received IGMP packet")
 		-> Discard;
 
@@ -76,9 +76,15 @@ elementclass Router {
 	// Input and output paths for interface 2
 	input[2]
 		-> HostEtherFilter($client2_address)
+		-> ip_igmp_class2::IPClassifier(ip proto 2, -)[1]
+		-> IPPrint("router received a packet")
 		-> client2_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client2_address)
 		-> [2]output;
+
+    ip_igmp_class2[0]
+		-> IPPrint("Router received IGMP packet")
+		-> Discard;
 
 	client2_arpq :: ARPQuerier($client2_address)
 		-> [2]output;

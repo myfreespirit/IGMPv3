@@ -24,6 +24,75 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
+void Reporter::replyToGeneralQuery()
+{
+
+    if(_states->_interfaceStates.size() == 0){
+        return;
+    }
+    
+    int numberOfGroups = _states->_interfaceStates.at(0).size();
+    click_chatter("number of group is %d", numberOfGroups);
+    if(numberOfGroups == 0)
+        return;
+        
+    int headroom = sizeof(click_ether);
+	int headerSize = sizeof(click_ip);
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups;
+	int packetSize = headerSize + messageSize;
+
+
+
+	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
+
+	if (!q) {
+		return;
+	}
+
+	memset(q->data(), '\0', packetSize);
+
+	click_ip* iph = (click_ip*) q->data();
+	iph->ip_v = 4;
+	iph->ip_hl = sizeof(click_ip) >> 2;
+	iph->ip_len = htons(q->length());
+	iph->ip_p = IP_PROTO_IGMP;
+	iph->ip_ttl = 1;
+	iph->ip_src = _states->_source;
+	iph->ip_dst = _states->_destination;
+	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
+	
+    Report* report = (Report *) (iph + 1);
+    report->type = TYPE_REPORT;
+    report->checksum = htons(0);
+    report->number_of_group_records = htons(numberOfGroups);  // TODO check for fragmentation needs
+    
+    for(int i=1; i<=numberOfGroups;i++){
+        GroupRecord* groupRecord = (GroupRecord* ) (report + i);
+        groupRecord->type = this->_states->_interfaceStates.at(0).at(i-1)._filter;
+        groupRecord->aux_data_len = 0;
+        groupRecord->multicast_address = this->_states->_interfaceStates.at(0).at(i-1)._groupAddress;
+
+	    // find source list of matching interface, group
+	    set<String> srcs = this->_states->_interfaceStates.at(0).at(i-1)._sources;
+
+        groupRecord->number_of_sources = htons(srcs.size());
+	    set<String>::iterator it = srcs.begin();
+
+	    for (int i = 0; i < srcs.size(); i++) {
+
+		    groupRecord->source_addresses[i] = IPAddress(*it);
+		    std::advance(it, 1);
+	    }
+	    
+	    
+	    //delete []temp;
+
+    }
+    report->checksum = click_in_cksum((unsigned char*) report, messageSize);
+    q->set_dst_ip_anno(_states->_destination);
+    output(0).push(q);
+}
+
 void Reporter::push(int, Packet *p)
 {
 	click_chatter("Received a packet of size %d",p->length());
@@ -32,7 +101,8 @@ void Reporter::push(int, Packet *p)
 
 	if(query->type == TYPE_QUERY){
 		if(query->group_address == IPAddress("0.0.0.0")){
-			click_chatter("Received general query");	
+			click_chatter("Received general query");
+			this->replyToGeneralQuery();	
 		}
 		else{
 			click_chatter("Received query for group %s", IPAddress(query->group_address).unparse().c_str());	

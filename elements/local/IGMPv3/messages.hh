@@ -15,7 +15,11 @@ struct Query {
 //	unsigned QRV:(3);
 	uint8_t QQIC;
 	uint16_t number_of_sources;
-	in_addr source_addresses[0];
+	//in_addr source_addresses[0];
+};
+
+struct SourceAddress{
+    in_addr address;
 };
 
 struct GroupRecord {
@@ -23,8 +27,7 @@ struct GroupRecord {
     uint8_t aux_data_len;
     uint16_t number_of_sources;
     in_addr multicast_address;
-	in_addr source_addresses[0];
-	uint32_t aux_data[];
+	//uint32_t aux_data[];
 };
 
 struct Report {
