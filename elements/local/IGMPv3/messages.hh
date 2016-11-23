@@ -1,6 +1,9 @@
 #ifndef CLICK_MESSAGES_HH
 #define CLICK_MESSAGES_HH
 
+#define TYPE_QUERY	0x11
+#define TYPE_REPORT	0x22
+
 struct Query {
 	uint8_t type;
 	uint8_t max_resp_code;

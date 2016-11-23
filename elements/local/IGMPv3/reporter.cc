@@ -27,7 +27,20 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 void Reporter::push(int, Packet *p)
 {
 	click_chatter("Received a packet of size %d",p->length());
-	output(0).push(p);
+	click_ip* iph = (click_ip*) p->data();
+	Query* query = (Query*)(iph+1); 
+
+	if(query->type == TYPE_QUERY){
+		if(query->group_address == IPAddress("0.0.0.0")){
+			click_chatter("Received general query");	
+		}
+		else{
+			click_chatter("Received query for group %s", IPAddress(query->group_address).unparse().c_str());	
+		}
+	}
+	click_chatter("Packet is %u", query->type);
+
+	//output(0).push(p);
 }
 
 Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
@@ -43,6 +56,7 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 		return 0;
 	}
 
+
 	memset(q->data(), '\0', packetSize);
 
 	click_ip* iph = (click_ip*) q->data();
@@ -56,7 +70,7 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
     Report* report = (Report *) (iph + 1);
-    report->type = 0x22;
+    report->type = TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(1);  // TODO check for fragmentation needs
 
@@ -125,7 +139,7 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 
 	// TODO verify group address is a valid mcast address
 
-	output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
+	me->output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 
@@ -172,7 +186,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 		sources.insert(vSources.at(i));
 	}
 
-	output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
+	me->output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
 	return 0;
 }
 

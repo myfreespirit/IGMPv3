@@ -46,9 +46,14 @@ elementclass Client {
 		-> arp_res :: ARPResponder($address)
 		-> output;
 
+	igmp_client_states::IGMPClientStates(SRC $address, DST all_routers_multicast_address);
+
 	ip_igmp_class[0]
+		-> Strip(14)
 		-> IPPrint("Client received IGMP packet")
-		-> Discard;
+		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
+		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
+		-> output;
 
 	in_cl[1]
 		-> [1]arpq;
@@ -56,9 +61,4 @@ elementclass Client {
 	in_cl[2]
 		-> ip;
 
-	igmp_client_states::IGMPClientStates(SRC $address, DST all_routers_multicast_address);
-
-	reporter::Reporter(CLIENT_STATES igmp_client_states)
-		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
-		-> output;
 }

@@ -48,7 +48,7 @@ Packet* Querier::createGeneralQueryPacket() {
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
 	Query* query = (Query *)(iph + 1);
-	query->type = 0x11;
+	query->type = TYPE_QUERY;
 	query->max_resp_code = 10;
 	query->checksum = htons(0);
 	query->group_address = IPAddress("0.0.0.0");
