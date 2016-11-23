@@ -26,22 +26,27 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 
 void Reporter::replyToGeneralQuery()
 {
-
-    if(_states->_interfaceStates.size() == 0){
+	// skip non existent interface states
+    if (_states->_interfaceStates.size() == 0) {
         return;
     }
     
-    int numberOfGroups = _states->_interfaceStates.at(0).size();
-    click_chatter("number of group is %d", numberOfGroups);
-    if(numberOfGroups == 0)
+	// assume general query arrived at interface 0
+	int interface = 0;
+    int numberOfGroups = _states->_interfaceStates.at(interface).size();
+    click_chatter("client is member of %d groups on interface %d", numberOfGroups, interface);
+    if (numberOfGroups == 0)
         return;
         
+	int totalSources = 0;
+    for (int i = 1; i <= numberOfGroups; i++) {
+	    totalSources += this->_states->_interfaceStates.at(interface).at(i-1)._sources.size();
+	}
+
     int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
-	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups;
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups + sizeof(IPAddress) * totalSources;
 	int packetSize = headerSize + messageSize;
-
-
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
@@ -62,62 +67,71 @@ void Reporter::replyToGeneralQuery()
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 	
     Report* report = (Report *) (iph + 1);
-    report->type = TYPE_REPORT;
+    report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(numberOfGroups);  // TODO check for fragmentation needs
     
-    for(int i=1; i<=numberOfGroups;i++){
-        GroupRecord* groupRecord = (GroupRecord* ) (report + i);
-        groupRecord->type = this->_states->_interfaceStates.at(0).at(i-1)._filter;
+	set<String> srcs;
+    for (int i = 0; i < numberOfGroups; i++) {
+        GroupRecord* groupRecord = (GroupRecord*) (report + 1 + i*2);
+        groupRecord->type = this->_states->_interfaceStates.at(interface).at(i)._filter;
         groupRecord->aux_data_len = 0;
-        groupRecord->multicast_address = this->_states->_interfaceStates.at(0).at(i-1)._groupAddress;
+        groupRecord->multicast_address = this->_states->_interfaceStates.at(interface).at(i)._groupAddress;
 
-	    // find source list of matching interface, group
-	    set<String> srcs = this->_states->_interfaceStates.at(0).at(i-1)._sources;
-
+	    // fill source list of matching (interface, group)
+	    srcs = this->_states->_interfaceStates.at(interface).at(i)._sources;
         groupRecord->number_of_sources = htons(srcs.size());
 	    set<String>::iterator it = srcs.begin();
-
+		Addresses* addresses = (Addresses*) (groupRecord + 1);
 	    for (int i = 0; i < srcs.size(); i++) {
-
-		    groupRecord->source_addresses[i] = IPAddress(*it);
+		    //groupRecord->source_addresses[i] = IPAddress(*it);
+			addresses->array[i] = IPAddress(*it);
 		    std::advance(it, 1);
 	    }
-	    
-	    
-	    //delete []temp;
-
     }
+
     report->checksum = click_in_cksum((unsigned char*) report, messageSize);
-    q->set_dst_ip_anno(_states->_destination);
-    output(0).push(q);
+    
+	q->set_dst_ip_anno(_states->_destination);
+    
+	output(0).push(q);
 }
 
 void Reporter::push(int, Packet *p)
 {
 	click_chatter("Received a packet of size %d",p->length());
-	click_ip* iph = (click_ip*) p->data();
-	Query* query = (Query*)(iph+1); 
 
-	if(query->type == TYPE_QUERY){
-		if(query->group_address == IPAddress("0.0.0.0")){
+	click_ip* iph = (click_ip*) p->data();
+	Query* query = (Query*) (iph + 1); 
+
+	if (query->type == IGMP_TYPE_QUERY) {
+		if (query->group_address == IPAddress("0.0.0.0")) {
 			click_chatter("Received general query");
-			this->replyToGeneralQuery();	
+			this->replyToGeneralQuery();
 		}
 		else{
 			click_chatter("Received query for group %s", IPAddress(query->group_address).unparse().c_str());	
 		}
 	}
-	click_chatter("Packet is %u", query->type);
-
-	//output(0).push(p);
 }
 
 Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
 {
+	_states->saveSocketState(port, interface, groupAddress, filter, sources);
+	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
+
+	int totalSources = 0;
+	Vector<InterfaceState>::const_iterator cit = _states->_interfaceStates.at(interface).begin();
+	for (; cit != _states->_interfaceStates.at(interface).end(); cit++) {
+		if (cit->_groupAddress == groupAddress) {
+			totalSources = cit->_sources.size();
+			break;
+		}
+	}
+
 	int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
-	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord);
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(IPAddress) * totalSources;
 	int packetSize = headerSize + messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
@@ -125,7 +139,6 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	if (!q) {
 		return 0;
 	}
-
 
 	memset(q->data(), '\0', packetSize);
 
@@ -140,14 +153,11 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
     Report* report = (Report *) (iph + 1);
-    report->type = TYPE_REPORT;
+    report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(1);  // TODO check for fragmentation needs
 
-	_states->saveSocketState(port, interface, groupAddress, filter, sources);
-	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
-
-    GroupRecord* groupRecord = (GroupRecord* ) (report + 1);
+    GroupRecord* groupRecord = (GroupRecord*) (report + 1);
     groupRecord->aux_data_len = 0;
     groupRecord->multicast_address = groupAddress;
 
@@ -158,7 +168,6 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	for (Vector<InterfaceState>::const_iterator it = iStates.begin(); it != iStates.end(); it++) {
 		if (it->_groupAddress == groupAddress) {
 			srcs = it->_sources;
-			// TODO that +2 is only needed when client joins particular interface,group,src, not when it responds to a query
 			groupRecord->type = it->_filter + 2;
 			isStateRemoved = false;
 			break;
@@ -168,9 +177,11 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 		groupRecord->type = CHANGE_TO_INCLUDE_MODE; 
 	}
     groupRecord->number_of_sources = htons(srcs.size());
+
+	Addresses* addresses = (Addresses*) (groupRecord + 1);
 	set<String>::iterator it = srcs.begin();
 	for (int i = 0; i < srcs.size(); i++) {
-		groupRecord->source_addresses[i] = IPAddress(*it);
+		addresses->array[i] = IPAddress(*it);
 		std::advance(it, 1);
 	}
 

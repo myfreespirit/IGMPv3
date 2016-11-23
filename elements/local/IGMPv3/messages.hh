@@ -1,8 +1,12 @@
 #ifndef CLICK_MESSAGES_HH
 #define CLICK_MESSAGES_HH
 
-#define TYPE_QUERY	0x11
-#define TYPE_REPORT	0x22
+#define IGMP_TYPE_QUERY		0x11
+#define IGMP_TYPE_REPORT	0x22
+
+struct Addresses {
+	in_addr array[];
+};
 
 struct Query {
 	uint8_t type;
@@ -15,11 +19,7 @@ struct Query {
 //	unsigned QRV:(3);
 	uint8_t QQIC;
 	uint16_t number_of_sources;
-	//in_addr source_addresses[0];
-};
-
-struct SourceAddress{
-    in_addr address;
+//	in_addr source_addresses[];
 };
 
 struct GroupRecord {
@@ -27,7 +27,8 @@ struct GroupRecord {
     uint8_t aux_data_len;
     uint16_t number_of_sources;
     in_addr multicast_address;
-	//uint32_t aux_data[];
+//	in_addr source_addresses[];
+//	uint32_t aux_data[];
 };
 
 struct Report {
