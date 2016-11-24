@@ -5,7 +5,7 @@
 #define IGMP_TYPE_REPORT	0x22
 
 struct Addresses {
-	in_addr array[];
+	in_addr array[1];
 };
 
 struct Query {

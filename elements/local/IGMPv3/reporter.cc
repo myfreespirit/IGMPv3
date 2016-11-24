@@ -39,13 +39,13 @@ void Reporter::replyToGeneralQuery()
         return;
         
 	int totalSources = 0;
-    for (int i = 1; i <= numberOfGroups; i++) {
-	    totalSources += this->_states->_interfaceStates.at(interface).at(i-1)._sources.size();
+    for (int i = 0; i < numberOfGroups; i++) {
+	    totalSources += this->_states->_interfaceStates.at(interface).at(i)._sources.size();
 	}
 
     int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
-	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups + sizeof(IPAddress) * totalSources;
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups + sizeof(struct Addresses) * totalSources;
 	int packetSize = headerSize + messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
@@ -72,22 +72,22 @@ void Reporter::replyToGeneralQuery()
     report->number_of_group_records = htons(numberOfGroups);  // TODO check for fragmentation needs
     
 	set<String> srcs;
+	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
     for (int i = 0; i < numberOfGroups; i++) {
-        GroupRecord* groupRecord = (GroupRecord*) (report + 1 + i);
         groupRecord->type = this->_states->_interfaceStates.at(interface).at(i)._filter;
         groupRecord->aux_data_len = 0;
         groupRecord->multicast_address = this->_states->_interfaceStates.at(interface).at(i)._groupAddress;
 
-	// fill source list of matching (interface, group)
-	srcs = this->_states->_interfaceStates.at(interface).at(i)._sources;
+		// fill source list of matching (interface, group)
+		srcs = this->_states->_interfaceStates.at(interface).at(i)._sources;
         groupRecord->number_of_sources = htons(srcs.size());
 	    set<String>::iterator it = srcs.begin();
 		Addresses* addresses = (Addresses*) (groupRecord + 1);
 	    for (int i = 0; i < srcs.size(); i++) {
-		    //groupRecord->source_addresses[i] = IPAddress(*it);
 			addresses->array[i] = IPAddress(*it);
 		    std::advance(it, 1);
 	    }
+		groupRecord = (GroupRecord*) (addresses + srcs.size());
     }
 
     report->checksum = click_in_cksum((unsigned char*) report, messageSize);
