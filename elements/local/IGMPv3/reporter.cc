@@ -73,13 +73,13 @@ void Reporter::replyToGeneralQuery()
     
 	set<String> srcs;
     for (int i = 0; i < numberOfGroups; i++) {
-        GroupRecord* groupRecord = (GroupRecord*) (report + 1 + i*2);
+        GroupRecord* groupRecord = (GroupRecord*) (report + 1 + i);
         groupRecord->type = this->_states->_interfaceStates.at(interface).at(i)._filter;
         groupRecord->aux_data_len = 0;
         groupRecord->multicast_address = this->_states->_interfaceStates.at(interface).at(i)._groupAddress;
 
-	    // fill source list of matching (interface, group)
-	    srcs = this->_states->_interfaceStates.at(interface).at(i)._sources;
+	// fill source list of matching (interface, group)
+	srcs = this->_states->_interfaceStates.at(interface).at(i)._sources;
         groupRecord->number_of_sources = htons(srcs.size());
 	    set<String>::iterator it = srcs.begin();
 		Addresses* addresses = (Addresses*) (groupRecord + 1);
