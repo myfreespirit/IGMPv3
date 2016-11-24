@@ -131,7 +131,7 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 
 	int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
-	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(IPAddress) * totalSources;
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(struct Addresses) * totalSources;
 	int packetSize = headerSize + messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
