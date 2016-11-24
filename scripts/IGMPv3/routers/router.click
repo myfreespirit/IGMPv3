@@ -16,6 +16,10 @@ require(library definitions.click)
 
 elementclass Router {
 	$server_address, $client1_address, $client2_address |
+	
+	igmp_router_states::IGMPRouterStates(SRC $server_address, DST all_hosts_multicast_address);
+		
+	querier::Querier(ROUTER_STATES igmp_router_states);
 
 	// Shared IP input path and routing table
 	ip :: Strip(14)
@@ -34,9 +38,14 @@ elementclass Router {
 	// Input and output paths for interface 0
 	input
 		-> HostEtherFilter($server_address)
+		-> ip_igmp_class0::IPClassifier(ip proto 2, -)[1]
 		-> server_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($server_address)
 		-> output;
+
+	ip_igmp_class0[0]
+		-> Strip(14)
+		-> [0]querier;
 
 	server_arpq :: ARPQuerier($server_address)
 		-> output;
@@ -53,14 +62,14 @@ elementclass Router {
 	input[1]
 		-> HostEtherFilter($client1_address)
 		-> ip_igmp_class1::IPClassifier(ip proto 2, -)[1]
-		-> IPPrint("router received a packet")
+		-> IPPrint("router received a packet on interface 1")
 		-> client1_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client1_address)
 		-> [1]output;
 
 	ip_igmp_class1[0]
-		-> IPPrint("Router received IGMP packet")
-		-> Discard;
+		-> Strip(14)
+		-> [1]querier;
 
 	client1_arpq :: ARPQuerier($client1_address)
 		-> [1]output;
@@ -77,14 +86,14 @@ elementclass Router {
 	input[2]
 		-> HostEtherFilter($client2_address)
 		-> ip_igmp_class2::IPClassifier(ip proto 2, -)[1]
-		-> IPPrint("router received a packet")
+		-> IPPrint("router received a packet on interface 2")
 		-> client2_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client2_address)
 		-> [2]output;
 
     ip_igmp_class2[0]
-		-> IPPrint("Router received IGMP packet")
-		-> Discard;
+		-> Strip(14)
+		-> [2]querier;
 
 	client2_arpq :: ARPQuerier($client2_address)
 		-> [2]output;
@@ -178,10 +187,8 @@ elementclass Router {
 	client2_frag[1]
 		-> ICMPError($client2_address, unreachable, needfrag)
 		-> rt;
-	
-	igmp_router_states::IGMPRouterStates(SRC $server_address, DST all_hosts_multicast_address);
-		
-	querier::Querier(ROUTER_STATES igmp_router_states)
+
+	querier[0]
 		-> server_arpq;
 
 	querier[1]

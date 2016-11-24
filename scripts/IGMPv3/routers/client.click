@@ -50,7 +50,6 @@ elementclass Client {
 
 	ip_igmp_class[0]
 		-> Strip(14)
-		-> IPPrint("Client received IGMP packet")
 		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
 		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
 		-> output;
@@ -60,5 +59,4 @@ elementclass Client {
 	
 	in_cl[2]
 		-> ip;
-
 }

@@ -88,7 +88,7 @@ REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int in
 		for (Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); ++it) {
 			if (it->_interface == interface && it->_groupAddress == groupAddress) {
 				vCopySocketStates.erase(it);
-				click_chatter("Removed socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
+				// click_chatter("Removed socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 				break;
 			}
 		}
@@ -100,7 +100,7 @@ REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int in
 				it->_filter = filter;
 				it->_sources = sources;
 				isPresent = true;
-				click_chatter("Updated socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
+				// click_chatter("Updated socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 				break;
 			}
 		}
@@ -112,7 +112,7 @@ REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int in
 			newState._filter = filter;
 			newState._sources = sources;
 			vCopySocketStates.push_back(newState);
-			click_chatter("Added socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
+			// click_chatter("Added socket state entry on port %u, interface %u and group %s", port, interface, groupAddress.unparse().c_str());
 		}
 	}
 

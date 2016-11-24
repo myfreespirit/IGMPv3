@@ -11,12 +11,12 @@ class Querier : public Element {
 		~Querier();
 		
 		const char *class_name() const	{ return "Querier"; }
-		const char *port_count() const	{ return "0/3"; }
+		const char *port_count() const	{ return "3/3"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		
 		void push(int, Packet *);
-		Packet* createGeneralQueryPacket();
+		void sendGeneralQuery(unsigned int interface);
 
 		static int generalQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
 		void add_handlers();

@@ -8,23 +8,39 @@
 #include <clicknet/ip.h>
 
 CLICK_DECLS
+
 Querier::Querier()
-{}
+{
+}
 
-Querier::~ Querier()
-{}
+Querier::~Querier()
+{
+}
 
-int Querier::configure(Vector<String> &conf, ErrorHandler *errh) {
+int Querier::configure(Vector<String> &conf, ErrorHandler *errh)
+{
 	if (cp_va_kparse(conf, this, errh, "ROUTER_STATES", cpkM, cpElementCast, "IGMPRouterStates", &_states, cpEnd) < 0) return -1;
 	return 0;
 }
 
-void Querier::push(int port, Packet *p) {
-	click_chatter("Got a packet of size %d",p->length());
-	output(port).push(p);
+void Querier::push(int interface, Packet *p)
+{
+	click_ip* iph = (click_ip*) p->data();
+	Report* report = (Report*) (iph + 1); 
+	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
+	unsigned int groupType = groupRecord->type;
+
+	click_chatter("Router received a packet from %s on port/interface %d", IPAddress(iph->ip_src).unparse().c_str(), interface);
+	
+	if (groupType == CHANGE_TO_INCLUDE_MODE || groupType == CHANGE_TO_EXCLUDE_MODE) {
+		click_chatter("Recognized FILTER-MODE-CHANGE report for group %s", IPAddress(groupRecord->multicast_address).unparse().c_str());
+	} else {
+		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
+	}
 }
 
-Packet* Querier::createGeneralQueryPacket() {
+void Querier::sendGeneralQuery(unsigned int interface)
+{
 	int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
 	int messageSize = sizeof(struct Query);
@@ -32,7 +48,8 @@ Packet* Querier::createGeneralQueryPacket() {
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
-		return 0;
+		// TODO generate error
+		return;
 	}
 
 	memset(q->data(), '\0', packetSize);
@@ -63,7 +80,7 @@ Packet* Querier::createGeneralQueryPacket() {
 
 	q->set_dst_ip_anno(_states->_destination);
 
-	return q;
+	output(interface).push(q);
 }
 
 int Querier::generalQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh) {
@@ -73,9 +90,9 @@ int Querier::generalQueryHandler(const String &conf, Element* e, void* thunk, Er
 		return -1;
 	}
 
-	me->push(0, me->createGeneralQueryPacket());
-	me->push(1, me->createGeneralQueryPacket());
-	me->push(2, me->createGeneralQueryPacket());
+	me->sendGeneralQuery(0);
+	me->sendGeneralQuery(1);
+	me->sendGeneralQuery(2);
 }
 
 

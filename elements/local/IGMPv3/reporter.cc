@@ -34,7 +34,7 @@ void Reporter::reportCurrentState()
 	// assume general query arrived at interface 0
 	int interface = 0;
     int numberOfGroups = _states->_interfaceStates.at(interface).size();
-    click_chatter("client is member of %d groups on interface %d", numberOfGroups, interface);
+    click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
     if (numberOfGroups == 0)
         return;
         
@@ -99,18 +99,16 @@ void Reporter::reportCurrentState()
 
 void Reporter::push(int, Packet *p)
 {
-	click_chatter("Received a packet of size %d",p->length());
-
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1); 
 
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress("0.0.0.0")) {
-			click_chatter("Received general query");
-			this->reportCurrentState();
-		}
-		else{
-			click_chatter("Received query for group %s", IPAddress(query->group_address).unparse().c_str());	
+			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
+			reportCurrentState();
+		} else {
+			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
+			// reportCurrentState(query->group_address);
 		}
 	}
 }
@@ -192,14 +190,14 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
 
 void Reporter::saveStates(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
 {
-	bool isFilterModeChange = _states->saveSocketState(port, interface, groupAddress, filter, sources);
-	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);  // = isSourceListChange
+	REPORT_MODE reportMode = _states->saveSocketState(port, interface, groupAddress, filter, sources);
+	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
 
-	if (isFilterModeChange) {
+	if (reportMode == FILTER_MODE_CHANGE) {
 		reportFilterModeChange(port, interface, groupAddress, filter, sources);
 	}
 	/*
-	   else if (isSourceListChange) {
+	   else if (reportMode == SOURCE_LIST_CHANGE) {
 			reportSourceListChange(port, interface, groupAddress, filter, sources);
 	   } 
 	 */
@@ -224,12 +222,10 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 			cpEnd) < 0)
 		return -1;
 
-	/* // TEST DISABLED TO TEST WHETHER CLIENT IGNORES MULTICAST PACKETS ON OTHER INTERFACES
 	if (interface != 0) {
 		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
 		return -1;
 	}
-	*/
 
 	// TODO verify group address is a valid mcast address
 	
@@ -261,12 +257,10 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 			cpEnd) < 0)
 		return -1;
 
-	/* // TEST DISABLED TO TEST WHETHER CLIENT IGNORES MULTICAST PACKETS ON OTHER INTERFACES
 	if (interface != 0) {
 		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
 		return -1;
 	}
-	*/
 
 	// TODO verify group address is a valid mcast address
 
