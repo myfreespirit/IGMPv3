@@ -4,6 +4,7 @@
 #include <click/element.hh>
 #include <click/hashtable.hh>
 #include <click/vector.hh>
+#include <set>
 #include "states/interfacestate.hh"
 #include "states/socketstate.hh"
 

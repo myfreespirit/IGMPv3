@@ -3,6 +3,8 @@
 
 #include <click/element.hh>
 #include <click/vector.hh>
+#include <click/hashtable.hh>
+#include "states/routerrecord.hh"
 
 CLICK_DECLS
 
@@ -18,12 +20,12 @@ public:
 
 	void push(int, Packet*);
 
-
 	/**
 	 * data members
 	 */
 	IPAddress _source;
 	IPAddress _destination;
+	Vector<HashTable<IPAddress, RouterRecord> > _records;  // per interface, per group
 };
 
 
