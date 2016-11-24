@@ -12,6 +12,12 @@ using std::set;
 
 CLICK_DECLS
 
+enum REPORT_MODE {
+	NOOP,
+	FILTER_MODE_CHANGE,
+	SOURCE_LIST_CHANGE
+};
+
 class IGMPClientStates : public Element {
 public:
 	IGMPClientStates();
@@ -26,7 +32,7 @@ public:
 
 	bool checkExcludeMode(unsigned int interface, IPAddress groupAddress);
 	void getSourceLists(unsigned int interface, IPAddress groupAddress, set<String>& excludeSources, set<String>& includeSources);
-	void saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
+	REPORT_MODE saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	void saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 
 	/**

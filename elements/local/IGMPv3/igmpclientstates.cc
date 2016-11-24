@@ -77,8 +77,10 @@ void IGMPClientStates::getSourceLists(unsigned int interface, IPAddress groupAdd
 }
 
 // RFC 3376 page 5
-void IGMPClientStates::saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
+REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
 {
+	bool hasExcludeFilterBefore = checkExcludeMode(interface, groupAddress);
+ 
 	Vector<SocketState> vCopySocketStates = _socketStates.get(port);
 	
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
@@ -116,6 +118,13 @@ void IGMPClientStates::saveSocketState(unsigned int port, unsigned int interface
 
 	// update socket state
 	_socketStates[port] = vCopySocketStates;
+
+	bool hasExcludeFilterAfter = checkExcludeMode(interface, groupAddress);
+	if (hasExcludeFilterBefore != hasExcludeFilterAfter) {
+		return FILTER_MODE_CHANGE;
+	} else {
+		return NOOP;
+	}
 }
 
 

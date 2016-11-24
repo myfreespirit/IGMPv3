@@ -29,10 +29,10 @@ public:
 	void add_handlers();
 
 private:
-	void replyToGeneralQuery();
-		
-	Packet* createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
-	Packet* createLeaveReport(unsigned int port, unsigned int interface, IPAddress groupAddress);
+	void saveStates(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
+	void reportCurrentState();
+	void reportFilterModeChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
+	// void reportSourceListChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 
 	IGMPClientStates* _states;
 };

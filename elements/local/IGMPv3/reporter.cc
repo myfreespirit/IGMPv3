@@ -24,7 +24,7 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
-void Reporter::replyToGeneralQuery()
+void Reporter::reportCurrentState()
 {
 	// skip non existent interface states
     if (_states->_interfaceStates.size() == 0) {
@@ -94,7 +94,7 @@ void Reporter::replyToGeneralQuery()
     
 	q->set_dst_ip_anno(_states->_destination);
     
-	output(0).push(q);
+	output(interface).push(q);
 }
 
 void Reporter::push(int, Packet *p)
@@ -107,7 +107,7 @@ void Reporter::push(int, Packet *p)
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress("0.0.0.0")) {
 			click_chatter("Received general query");
-			this->replyToGeneralQuery();
+			this->reportCurrentState();
 		}
 		else{
 			click_chatter("Received query for group %s", IPAddress(query->group_address).unparse().c_str());	
@@ -115,11 +115,8 @@ void Reporter::push(int, Packet *p)
 	}
 }
 
-Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
+void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
 {
-	_states->saveSocketState(port, interface, groupAddress, filter, sources);
-	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
-
 	int totalSources = 0;
 	Vector<InterfaceState>::const_iterator cit = _states->_interfaceStates.at(interface).begin();
 	for (; cit != _states->_interfaceStates.at(interface).end(); cit++) {
@@ -137,7 +134,8 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
-		return 0;
+		// TODO generate error
+		return;
 	}
 
 	memset(q->data(), '\0', packetSize);
@@ -189,7 +187,22 @@ Packet* Reporter::createJoinReport(unsigned int port, unsigned int interface, IP
 
     q->set_dst_ip_anno(_states->_destination);
 
-	return q;
+	output(interface).push(q);
+}
+
+void Reporter::saveStates(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources)
+{
+	bool isFilterModeChange = _states->saveSocketState(port, interface, groupAddress, filter, sources);
+	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);  // = isSourceListChange
+
+	if (isFilterModeChange) {
+		reportFilterModeChange(port, interface, groupAddress, filter, sources);
+	}
+	/*
+	   else if (isSourceListChange) {
+			reportSourceListChange(port, interface, groupAddress, filter, sources);
+	   } 
+	 */
 }
 
 int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
@@ -219,8 +232,9 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 	*/
 
 	// TODO verify group address is a valid mcast address
-
-	me->output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
+	
+	me->saveStates(port, interface, groupAddress, filter, sources);
+	
 	return 0;
 }
 
@@ -267,7 +281,8 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 		sources.insert(vSources.at(i));
 	}
 
-	me->output(interface).push(me->createJoinReport(port, interface, groupAddress, filter, sources));
+	me->saveStates(port, interface, groupAddress, filter, sources);
+
 	return 0;
 }
 
