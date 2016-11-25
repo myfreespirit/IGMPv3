@@ -28,6 +28,10 @@ public:
 	IPAddress _source;
 	IPAddress _destination;
 	Vector<HashTable<IPAddress, RouterRecord> > _records;  // per interface, per group
+
+private:
+	// collects all source addresses either from _forwardingSet or _blockingSet depening on given filter for a router record with given interface and groupAddress
+	Vector<IPAddress> getSourceAddresses(unsigned int interface, IPAddress groupAddress, FilterMode filter);
 };
 
 

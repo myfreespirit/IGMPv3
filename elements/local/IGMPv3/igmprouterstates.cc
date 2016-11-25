@@ -31,8 +31,29 @@ void IGMPRouterStates::push(int, Packet *p)
 	output(0).push(p);
 }
 
+// @requires _records must be big enough (interface)
+// @requires _records must already contain a record for given groupAddress
+Vector<IPAddress> IGMPRouterStates::getSourceAddresses(unsigned int interface, IPAddress groupAddress, FilterMode filter)
+{
+	Vector<SourceRecord> vSourceRecords;
+	if (filter == MODE_IS_INCLUDE) {
+		vSourceRecords = _records.at(interface)[groupAddress]._forwardingSet;
+	} else if (filter == MOE_IS_EXCLUDE) {
+		vSourceRecords = _records.at(interface)[groupAddress]._blockingSet;
+	}
+
+	Vector<IPAddress> vSources;
+	int total = vSourceRecords.size();
+	for (int i = 0; i < total; i++) {
+		vSources.push_back(vSourceRecords.at(i)._sourceAddress);
+	}
+
+	return vSources;
+}
+
 // RFC 3376, page 32 + 33
-void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources) {
+void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources)
+{
 	if (interface >= _records.size()) {
 		_records.resize(interface + 1);
 	}
@@ -42,7 +63,7 @@ void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddr
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == CHANGE_TO_EXCLUDE_MODE) {
 			routerRecord._filter = MODE_IS_EXCLUDE;
-			// _forwardingSet is already {}
+			// _forwardingSet is usually {}  // TODO
 			// routerRecord._blockingSet = sources;  // TODO
 			// TODO set group timer for routerRecord
 		} else {

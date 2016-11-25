@@ -19,8 +19,8 @@ public:
 	FilterMode _filter;
 
 	// RFC 3376 page 30
-	Vector<SourceRecord> _forwardingSet;  // grouptimers > 0 && when the set is empty, record is removed if INCLUDE
-	Vector<SourceRecord> _blockingSet;    // grouptimers == 0 && only for EXCLUDE router-filter-mode records
+	Vector<SourceRecord> _forwardingSet;  // source timers > 0 && when the set is empty, record is removed if INCLUDE
+	Vector<SourceRecord> _blockingSet;    // source timers == 0 && only for EXCLUDE router-filter-mode records
 };
 
 #endif
