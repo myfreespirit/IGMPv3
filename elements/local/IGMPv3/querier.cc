@@ -34,6 +34,14 @@ void Querier::push(int interface, Packet *p)
 	
 	if (groupType == CHANGE_TO_INCLUDE_MODE || groupType == CHANGE_TO_EXCLUDE_MODE) {
 		click_chatter("Recognized FILTER-MODE-CHANGE report for group %s", IPAddress(groupRecord->multicast_address).unparse().c_str());
+		int totalSources = ntohs(groupRecord->number_of_sources);
+		Vector<IPAddress> vSources;
+		Addresses* addresses = (Addresses*) (groupRecord + 1);
+		for (int i = 0; i < totalSources; i++) {
+			click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
+			vSources.push_back(addresses->array[i]);
+		}
+		_states->updateRecords(interface, groupRecord->multicast_address, groupType, vSources);
 	} else {
 		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
 	}

@@ -7,7 +7,7 @@
 // RFC 3376 page 26 
 class RouterRecord {
 public:
-	RouterRecord()
+	RouterRecord() : _filter(MODE_IS_INCLUDE)
 	{
 	}
 
