@@ -3,9 +3,12 @@
 #include <click/error.hh>
 
 #include "igmprouterstates.hh"
+#include "utils/vectoroperations.hh"
 
+using namespace vectoroperations;
 
 CLICK_DECLS
+
 
 IGMPRouterStates::IGMPRouterStates()
 {
@@ -38,7 +41,7 @@ Vector<IPAddress> IGMPRouterStates::getSourceAddresses(unsigned int interface, I
 	Vector<SourceRecord> vSourceRecords;
 	if (filter == MODE_IS_INCLUDE) {
 		vSourceRecords = _records.at(interface)[groupAddress]._forwardingSet;
-	} else if (filter == MOE_IS_EXCLUDE) {
+	} else if (filter == MODE_IS_EXCLUDE) {
 		vSourceRecords = _records.at(interface)[groupAddress]._blockingSet;
 	}
 
@@ -49,6 +52,20 @@ Vector<IPAddress> IGMPRouterStates::getSourceAddresses(unsigned int interface, I
 	}
 
 	return vSources;
+}
+
+
+Vector<SourceRecord> IGMPRouterStates::transformToSourceRecords(Vector<IPAddress> a)
+{
+	Vector<SourceRecord> result;
+	for(Vector<IPAddress>::iterator it = a.begin(); it != a.end(); it++){
+		SourceRecord sr(*it);		
+		result.push_back(sr);
+	
+	}
+	return result;
+
+
 }
 
 // RFC 3376, page 32 + 33
@@ -62,10 +79,16 @@ void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddr
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == CHANGE_TO_EXCLUDE_MODE) {
-			routerRecord._filter = MODE_IS_EXCLUDE;
-			// _forwardingSet is usually {}  // TODO
-			// routerRecord._blockingSet = sources;  // TODO
+
 			// TODO set group timer for routerRecord
+			// TODO set source timer for difference set
+			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress,routerRecord._filter);
+			routerRecord._filter = MODE_IS_EXCLUDE;
+			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
+			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 
+			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
+			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
+			
 		} else {
 			// from INCLUDE to ALLOW | BLOCK | TO_IN isn't required in our version
 		}
@@ -73,9 +96,15 @@ void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddr
 		// router-filter-mode is EXCLUDE	
 		if (filter == CHANGE_TO_INCLUDE_MODE) {
 			// router-filter-mode remains EXCLUDE
-			//routerRecord._forwaringSet = sources;  // TODO
-			//routerRecord._blockingSet = sources;  // TODO
 			// TODO send group specific query for groupAddress
+			// TODO set source timer for sources
+			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress,MODE_IS_INCLUDE);
+			Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress,MODE_IS_EXCLUDE);
+
+			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources); 
+			Vector<IPAddress> newBlocking = vector_difference(routerBlockingSources, sources); 
+			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
+			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 		} else {
 			// from EXCLUDE to ALLOW | BLOCK | TO_EX isn't required in our version
 		}

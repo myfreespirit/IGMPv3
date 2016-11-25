@@ -87,7 +87,7 @@ void Querier::sendGeneralQuery(unsigned int interface)
 	query->checksum = click_in_cksum((unsigned char*) query, messageSize);
 
 	q->set_dst_ip_anno(_states->_destination);
-
+	click_chatter("General query is sent by router.");
 	output(interface).push(q);
 }
 

@@ -32,6 +32,7 @@ public:
 private:
 	// collects all source addresses either from _forwardingSet or _blockingSet depening on given filter for a router record with given interface and groupAddress
 	Vector<IPAddress> getSourceAddresses(unsigned int interface, IPAddress groupAddress, FilterMode filter);
+	Vector<SourceRecord> transformToSourceRecords(Vector<IPAddress> a);
 };
 
 
