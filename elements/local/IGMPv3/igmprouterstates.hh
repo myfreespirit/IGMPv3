@@ -23,6 +23,12 @@ public:
 	void updateRecords(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 
 	/**
+	 * handlers
+	 */
+	static String recordStates(Element* e, void* thunk);
+	void add_handlers();
+
+	/**
 	 * data members
 	 */
 	IPAddress _source;

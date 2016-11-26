@@ -1,6 +1,7 @@
 #include <click/config.h>
 #include <click/confparse.hh>
 #include <click/error.hh>
+#include <algorithm>
 
 #include "igmprouterstates.hh"
 #include "utils/vectoroperations.hh"
@@ -63,9 +64,8 @@ Vector<SourceRecord> IGMPRouterStates::transformToSourceRecords(Vector<IPAddress
 		result.push_back(sr);
 	
 	}
+
 	return result;
-
-
 }
 
 // RFC 3376, page 32 + 33
@@ -77,18 +77,19 @@ void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddr
 	
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
+	click_chatter("router's filter mode %d vs %u", routerRecord._filter, filter);
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == CHANGE_TO_EXCLUDE_MODE) {
-
 			// TODO set group timer for routerRecord
 			// TODO set source timer for difference set
-			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress,routerRecord._filter);
+			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, routerRecord._filter);
 			routerRecord._filter = MODE_IS_EXCLUDE;
 			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
 			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
-			
+			_records.at(interface)[groupAddress] = routerRecord;
+			click_chatter("FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
 		} else {
 			// from INCLUDE to ALLOW | BLOCK | TO_IN isn't required in our version
 		}
@@ -110,6 +111,57 @@ void IGMPRouterStates::updateRecords(unsigned int interface, IPAddress groupAddr
 		}
 	}
 }
+
+String IGMPRouterStates::recordStates(Element* e, void* thunk)
+{
+	IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+	String output;
+	
+	output += "\n";
+	output += "\t I | \t GROUP \t | G.Tmr | FILTER  | ALLOW | S.Tmr | BLOCK | S.Tmr \n";
+
+	int amountOfInterfaces = me->_records.size();
+	for (int i = 0; i < amountOfInterfaces; i++) {
+		HashTable<IPAddress, RouterRecord>::const_iterator it;
+		for (it = me->_records.at(i).begin(); it != me->_records.at(i).end(); it++) {
+			IPAddress group = it.key();
+			RouterRecord record = it.value();
+			int amountOfAllows = record._forwardingSet.size();
+			int amountOfBlocks = record._blockingSet.size();
+
+			for (int k = 0; k < std::max(amountOfAllows, amountOfBlocks); k++) {
+				output += "\t " + String(i) + " | ";
+
+				output += " " + group.unparse() + "  | ";
+
+				output += "X sec | ";
+
+				output += (record._filter == MODE_IS_INCLUDE) ? "INCLUDE | " : "EXCLUDE | ";
+				
+				output += (k < amountOfAllows) ? record._forwardingSet.at(k)._sourceAddress.unparse() : " \t  ";
+				output += " | ";
+				
+				output += "X sec | ";
+				
+				output += (k < amountOfBlocks) ? record._blockingSet.at(k)._sourceAddress.unparse() : " \t  ";
+				output += " | ";
+				
+				output += "X sec \n";
+			}
+		}
+	}
+
+	output += "\n";
+
+	return output;
+}
+
+void IGMPRouterStates::add_handlers()
+{
+	add_read_handler("records", &recordStates, (void *) 0);
+}
+
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(IGMPRouterStates)
