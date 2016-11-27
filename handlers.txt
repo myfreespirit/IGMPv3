@@ -1,0 +1,48 @@
+read client21/igmp_client_states.sockets
+read client21/igmp_client_states.interfaces
+read router/igmp_router_states.records
+
+
+
+# client21 is interested in group 225.0.0.1 but not from source 192.168.1.1
+# FILTER_MODE iS EXCLUDE by default
+write client21/reporter.join_group GROUP 225.0.0.1, SRC 192.168.1.1
+read client21/igmp_client_states.sockets
+read client21/igmp_client_states.interfaces
+read router/igmp_router_states.records
+
+
+
+# client21 decides to leave the group as there's no traffic coming in
+write client21/reporter.leave_group GROUP 225.0.0.1
+read client21/igmp_client_states.sockets
+read client21/igmp_client_states.interfaces
+read router/igmp_router_states.records
+
+
+
+# client22 is interested in group 225.0.0.1, but not from source 1.1.1.1
+write client22/reporter.join_group GROUP 225.0.0.1, SRC 1.1.1.1
+read client22/igmp_client_states.sockets
+read client22/igmp_client_states.interfaces
+read router/igmp_router_states.records
+
+# client32 is interested in group 225.0.0.1 from source 192.168.1.1 at the same time
+write client32/reporter.join_group GROUP 225.0.0.1, FILTER INCLUDE, SRC 192.168.1.1
+read client32/igmp_client_states.sockets
+read client32/igmp_client_states.interfaces
+read router/igmp_router_states.records
+
+
+
+# we need to send a general query to notice that client32 would like to receive the multicast traffic
+# since his filter mode didn't change
+write router/querier.general_query
+
+
+
+# client32 is no longer interested in source 192.168.1.1 in group 225.0.0.1
+write client32/reporter.join_group GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1
+read client32/igmp_client_states.sockets
+read client32/igmp_client_states.interfaces
+read router/igmp_router_states.records
