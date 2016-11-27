@@ -20,7 +20,8 @@ public:
 
 	void push(int, Packet*);
 
-	void updateRecords(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
+	void updateCurrentState(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
+	void updateFilterChange(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 
 	/**
 	 * handlers

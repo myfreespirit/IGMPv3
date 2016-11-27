@@ -41,9 +41,22 @@ void Querier::push(int interface, Packet *p)
 			click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
 			vSources.push_back(addresses->array[i]);
 		}
-		_states->updateRecords(interface, groupRecord->multicast_address, groupType, vSources);
+		_states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
 	} else {
 		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
+
+		int totalGroups = ntohs(report->number_of_group_records);
+		for (int g = 0; g < totalGroups; g++) {
+			int totalSources = ntohs(groupRecord->number_of_sources);
+			Vector<IPAddress> vSources;
+			Addresses* addresses = (Addresses*) (groupRecord + 1);
+			for (int i = 0; i < totalSources; i++) {
+				click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
+				vSources.push_back(addresses->array[i]);
+			}
+			_states->updateCurrentState(interface, groupRecord->multicast_address, groupType, vSources);
+			groupRecord = (GroupRecord*) (addresses + totalSources);
+		}
 	}
 }
 
