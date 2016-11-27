@@ -3,6 +3,9 @@
 
 #include <click/vector.hh>
 #include <click/ipaddress.hh>
+#include <algorithm>
+
+using std::find;
 
 namespace vectoroperations {
 
@@ -13,7 +16,10 @@ namespace vectoroperations {
 		for (Vector<IPAddress>::iterator it = a.begin(); it != a.end(); it++) {
 			for (Vector<IPAddress>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
 				if ((*it) == (*it2)) {
-					result.insert(result.end(),*it2);
+					if (find(result.begin(), result.end(), *it) == result.end()) {
+						result.insert(result.end(), *it2);
+						break;
+					}
 				}
 			}
 
@@ -22,16 +28,19 @@ namespace vectoroperations {
 		return result;
 	}
 
-
 	Vector<IPAddress> vector_union(Vector<IPAddress> a, Vector<IPAddress> b)
 	{
 		Vector<IPAddress> result;
 		for (Vector<IPAddress>::iterator it = a.begin(); it != a.end(); it++) {
-			result.insert(result.end(),*it);
+			if (find(result.begin(), result.end(), *it) == result.end()) {
+				result.insert(result.end(), *it);
+			}
 		}
 
 		for (Vector<IPAddress>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
-			result.insert(result.end(),*it2);
+			if (find(result.begin(), result.end(), *it2) == result.end()) {
+				result.insert(result.end(), *it2);
+			}
 		}
 
 		return result;
@@ -48,10 +57,11 @@ namespace vectoroperations {
 					foundMatch = true;
 					break;
 				}
-		
 			}
 			if (!foundMatch) {
-				result.insert(result.end(), *it);
+				if (find(result.begin(), result.end(), *it) == result.end()) {
+					result.insert(result.end(), *it);
+				}
 			}
 		}
 
@@ -59,6 +69,6 @@ namespace vectoroperations {
 	}
 
 
-}  //end namespace
+}  // end namespace vectoroperations
 
 #endif

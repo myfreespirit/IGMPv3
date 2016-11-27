@@ -14,6 +14,7 @@ namespace setoperations {
 			for (set<String>::iterator it2 = b.begin(); it2 != b.end(); it2++) {
 				if ((*it) == (*it2)) {
 					result.insert(result.end(),*it2);
+					break;
 				}
 			}
 
