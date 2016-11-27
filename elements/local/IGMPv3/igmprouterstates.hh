@@ -5,6 +5,7 @@
 #include <click/vector.hh>
 #include <click/hashtable.hh>
 #include "states/routerrecord.hh"
+#include "utils/filtermode.hh"
 
 CLICK_DECLS
 
@@ -21,7 +22,7 @@ public:
 	void push(int, Packet*);
 
 	void updateCurrentState(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
-	void updateFilterChange(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
+	QUERY_MODE updateFilterChange(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 
 	/**
 	 * handlers

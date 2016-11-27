@@ -41,7 +41,11 @@ void Querier::push(int interface, Packet *p)
 			click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
 			vSources.push_back(addresses->array[i]);
 		}
-		_states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
+		QUERY_MODE queryMode = _states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
+
+		if (queryMode == GROUP_QUERY) {
+			sendQuery(interface, groupRecord->multicast_address);
+		}
 	} else {
 		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
 
@@ -60,7 +64,7 @@ void Querier::push(int interface, Packet *p)
 	}
 }
 
-void Querier::sendGeneralQuery(unsigned int interface)
+void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0.0.0"))
 {
 	int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);
@@ -85,11 +89,11 @@ void Querier::sendGeneralQuery(unsigned int interface)
 	iph->ip_dst = _states->_destination;
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
-	Query* query = (Query *)(iph + 1);
+	Query* query = (Query *) (iph + 1);
 	query->type = IGMP_TYPE_QUERY;
 	query->max_resp_code = 10;
 	query->checksum = htons(0);
-	query->group_address = IPAddress("0.0.0.0");
+	query->group_address = group;
 	query->resvSQRV = (0 << 4) | (0 << 3) | (2);
 //	query->resv = 0;
 //	query->S = 0;
@@ -100,7 +104,7 @@ void Querier::sendGeneralQuery(unsigned int interface)
 	query->checksum = click_in_cksum((unsigned char*) query, messageSize);
 
 	q->set_dst_ip_anno(_states->_destination);
-	click_chatter("General query is sent by router.");
+	click_chatter("Router sent a query on interface %u for group %s", interface, group.unparse().c_str());
 	output(interface).push(q);
 }
 
@@ -111,15 +115,30 @@ int Querier::generalQueryHandler(const String &conf, Element* e, void* thunk, Er
 		return -1;
 	}
 
-	me->sendGeneralQuery(0);
-	me->sendGeneralQuery(1);
-	me->sendGeneralQuery(2);
+	me->sendQuery(0);
+	me->sendQuery(1);
+	me->sendQuery(2);
 }
 
+int Querier::groupQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh) {
+	Querier* me = (Querier *) e;
+
+	unsigned int interface;
+	IPAddress group;
+
+	if (cp_va_kparse(conf, me, errh,
+			"INTERFACE", cpkM, cpUnsigned, &interface,
+			"GROUP", cpkM, cpIPAddress, &group,
+			cpEnd) < 0) {
+		return -1;
+	}
+
+	me->sendQuery(interface, group);
+}
 
 void Querier::add_handlers() {
 	add_write_handler("general_query", &generalQueryHandler, (void *) 0);
-	//add_write_handler("group_query", &queryHandler, (void *) 0);
+	add_write_handler("group_query", &groupQueryHandler, (void *) 0);
 }
 
 CLICK_ENDDECLS

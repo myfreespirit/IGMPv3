@@ -16,9 +16,10 @@ class Querier : public Element {
 		int configure(Vector<String>&, ErrorHandler*);
 		
 		void push(int, Packet *);
-		void sendGeneralQuery(unsigned int interface);
+		void sendQuery(unsigned int interface, IPAddress group);
 
 		static int generalQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
+		static int groupQueryHandler(const String &conf, Element* e, void* thunk, ErrorHandler* errh);
 		void add_handlers();
 
 		IGMPRouterStates* _states;

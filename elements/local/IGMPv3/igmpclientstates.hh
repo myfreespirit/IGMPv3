@@ -5,18 +5,14 @@
 #include <click/hashtable.hh>
 #include <click/vector.hh>
 #include <set>
+
 #include "states/interfacestate.hh"
 #include "states/socketstate.hh"
+#include "utils/filtermode.hh"
 
 using std::set;
 
 CLICK_DECLS
-
-enum REPORT_MODE {
-	NOOP,
-	FILTER_MODE_CHANGE,
-	SOURCE_LIST_CHANGE
-};
 
 class IGMPClientStates : public Element {
 public:

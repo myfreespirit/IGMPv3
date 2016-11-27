@@ -4,6 +4,7 @@
 
 #include "reporter.hh"
 #include "messages.hh"
+#include "utils/filtermode.hh"
 
 #include <clicknet/ether.h>
 #include <clicknet/ip.h>
@@ -193,11 +194,11 @@ void Reporter::saveStates(unsigned int port, unsigned int interface, IPAddress g
 	REPORT_MODE reportMode = _states->saveSocketState(port, interface, groupAddress, filter, sources);
 	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
 
-	if (reportMode == FILTER_MODE_CHANGE) {
+	if (reportMode == FILTER_MODE_CHANGE_REPORT) {
 		reportFilterModeChange(port, interface, groupAddress, filter, sources);
 	}
 	/*
-	   else if (reportMode == SOURCE_LIST_CHANGE) {
+	   else if (reportMode == SOURCE_LIST_CHANGE_REPORT) {
 			reportSourceListChange(port, interface, groupAddress, filter, sources);
 	   } 
 	 */

@@ -121,9 +121,9 @@ REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int in
 
 	bool hasExcludeFilterAfter = checkExcludeMode(interface, groupAddress);
 	if (hasExcludeFilterBefore != hasExcludeFilterAfter) {
-		return FILTER_MODE_CHANGE;
+		return FILTER_MODE_CHANGE_REPORT;
 	} else {
-		return NOOP;
+		return NO_REPORT;
 	}
 }
 
