@@ -15,13 +15,14 @@ Reporter::Reporter()
 {
 }
 
-Reporter::~ Reporter()
+Reporter::~Reporter()
 {
 }
 
 int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "CLIENT_STATES", cpkM, cpElementCast, "IGMPClientStates", &_states, cpEnd) < 0) return -1;
+
 	return 0;
 }
 
@@ -31,6 +32,9 @@ void Reporter::reportGroupState(IPAddress group)
     if (_states->_interfaceStates.size() == 0) {
         return;
     }
+
+	if (group == IPAddress("224.0.0.1"))
+		return;
 
 	// assume group query arrived at interface 0
     int groupIndex;
@@ -109,13 +113,13 @@ void Reporter::reportCurrentState()
     
 	// assume general query arrived at interface 0
 	int interface = 0;
-    int numberOfGroups = _states->_interfaceStates.at(interface).size();
+    int numberOfGroups = _states->_interfaceStates.at(interface).size() - 1;  // subtract the all hosts membership group
     click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
     if (numberOfGroups == 0)
         return;
         
 	int totalSources = 0;
-    for (int i = 0; i < numberOfGroups; i++) {
+    for (int i = 1; i <= numberOfGroups; i++) {
 	    totalSources += this->_states->_interfaceStates.at(interface).at(i)._sources.size();
 	}
 
@@ -149,7 +153,7 @@ void Reporter::reportCurrentState()
     
 	set<String> srcs;
 	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
-    for (int i = 0; i < numberOfGroups; i++) {
+    for (int i = 1; i <= numberOfGroups; i++) {
         groupRecord->type = this->_states->_interfaceStates.at(interface).at(i)._filter;
         groupRecord->aux_data_len = 0;
         groupRecord->multicast_address = this->_states->_interfaceStates.at(interface).at(i)._groupAddress;
@@ -300,6 +304,11 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 
 	if (interface != 0) {
 		errh->error("[ERROR IGMPReporter]: invalid INTERFACE value (%u) provided for client with address %s, expected 0", interface, me->_states->_source.unparse().c_str());
+		return -1;
+	}
+
+	if (groupAddress == IPAddress("224.0.0.1")) {
+		errh->error("[ERROR IGMPReporter]: cannot leave group 224.0.0.1!");
 		return -1;
 	}
 

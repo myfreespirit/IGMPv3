@@ -11,6 +11,14 @@ CLICK_DECLS
 
 IGMPClientStates::IGMPClientStates()
 {
+	_interfaceStates.resize(1);
+	InterfaceState iState = InterfaceState(IPAddress("224.0.0.1"), MODE_IS_EXCLUDE, std::set<String>());
+	_interfaceStates.at(0).push_back(iState);
+
+	Vector<SocketState> vSockets = _socketStates.get(1234);
+	SocketState sState = SocketState(0, IPAddress("224.0.0.1"), MODE_IS_EXCLUDE, std::set<String>());
+	vSockets.push_back(sState);
+	_socketStates[1234] = vSockets;
 }
 
 IGMPClientStates::~IGMPClientStates()
