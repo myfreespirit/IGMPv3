@@ -1,0 +1,48 @@
+Internet Group Management Protocol Version 3   
+Implemented using C++ and click modular router.
+===============================================
+
+
+# Instructions  
+When replacing ipnetwork.click file, it's important to put it inside our scripts/IGMPv3/ folder and run it from there:
+	cd click-2.0.1/
+	./userlevel/click -p 10000 scripts/IGMPv3/ipnetwork.click
+
+
+Using telnet it's possible to play around with Client's and Router's elements:
+	telnet localhost 10000
+
+
+We have provided a handful of read and write handlers for demonstration purposes:
+
+CLIENTS
+=======
+* Joins (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, empty SRC list)
+	write client21/reporter.join_group
+	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER INCLUDE, SRC 192.168.1.1, SRC 1.1.1.2
+	write client32/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1
+
+* Leaves (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1)
+	write client21/reporter.leave_group
+	write client21/reporter.leave_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1
+
+* Infobase Element states (per interface [currently only interface 0] and per socket [i.e. client's IP address:port])
+	read client21/igmp_client_states.sockets
+	read client21/igmp_client_states.interfaces
+
+ROUTERS
+=======
+* General Query (sends out on all attached interfaces)
+	write router/querier.general_query
+
+* Group Specific Query (by default INTERFACE 0, GROUP 225.0.0.1)
+	write router/querier.group_query
+	write router/querier.group_query INTERFACE 0, GROUP 225.0.0.1
+
+* Router records per interface and per multicast group
+	read router/igmp_router_states.records
+
+
+# Authors
+Eduard Besjentsev  
+Nishchal Shrestha
