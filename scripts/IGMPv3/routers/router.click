@@ -201,7 +201,18 @@ elementclass Router {
 		-> client2_arpq;
 
 	rt[4]
-		-> m_cast_sender::MulticastSender(ROUTER_STATES igmp_router_states);
+		-> split::Tee(3);
+
+	m_cast_sender::MulticastSender(ROUTER_STATES igmp_router_states);
+
+	split[0]
+		-> [0]m_cast_sender;
+
+	split[1]
+		-> [1]m_cast_sender;
+
+	split[2]
+		-> [2]m_cast_sender;
 
 	m_cast_sender[0]
 		-> server_arpq;

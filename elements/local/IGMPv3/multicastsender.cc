@@ -23,18 +23,14 @@ int MulticastSender::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
-void MulticastSender::push(int interface, Packet *p)
+void MulticastSender::push(int i, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
 
     // click_chatter("Router received a packet from %s on port/interface %d, destined to %s", IPAddress(iph->ip_src).unparse().c_str(), interface, IPAddress(iph->ip_dst).unparse().c_str());
 
-	// per router interface
-	for (int i = 0; i < 3; i++) {
-		if (_states->isMulticastAllowed(i, iph->ip_dst, iph->ip_src)) {
-			WritablePacket *clone = p->uniqueify();
-			output(i).push(clone);
-		}
+	if (_states->isMulticastAllowed(i, iph->ip_dst, iph->ip_src)) {
+		output(i).push(p);
 	}
 }
 

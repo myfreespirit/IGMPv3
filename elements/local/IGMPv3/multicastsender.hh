@@ -12,7 +12,7 @@ class MulticastSender : public Element {
 		~MulticastSender();
 		
 		const char *class_name() const	{ return "MulticastSender"; }
-		const char *port_count() const	{ return "1/3"; }
+		const char *port_count() const	{ return "3/3"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		
