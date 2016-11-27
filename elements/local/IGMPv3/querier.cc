@@ -89,7 +89,7 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 	iph->ip_dst = _states->_destination;
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
-	// TODO get specific values from infor base element (QRV, QQIC, etc)
+	// TODO get specific values from infobase element (QRV, QQIC, etc)
 	Query* query = (Query *) (iph + 1);
 	query->type = IGMP_TYPE_QUERY;
 	query->max_resp_code = (group == IPAddress("0.0.0.0")) ? 100 : 10;

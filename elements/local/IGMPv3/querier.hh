@@ -1,7 +1,7 @@
 #ifndef CLICK_QUERIER_HH
 #define CLICK_QUERIER_HH
 #include <click/element.hh>
-#include "igmprouterstates.hh"
+#include "infobases/igmprouterstates.hh"
 
 CLICK_DECLS
 

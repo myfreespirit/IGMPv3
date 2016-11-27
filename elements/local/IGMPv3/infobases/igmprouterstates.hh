@@ -4,8 +4,8 @@
 #include <click/element.hh>
 #include <click/vector.hh>
 #include <click/hashtable.hh>
-#include "states/routerrecord.hh"
-#include "utils/filtermode.hh"
+#include "../states/routerrecord.hh"
+#include "../utils/filtermode.hh"
 
 CLICK_DECLS
 

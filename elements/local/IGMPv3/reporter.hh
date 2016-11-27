@@ -3,7 +3,7 @@
 
 #include <click/element.hh>
 #include <set>
-#include "igmpclientstates.hh"
+#include "infobases/igmpclientstates.hh"
 
 using std::set;
 

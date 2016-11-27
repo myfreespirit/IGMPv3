@@ -6,9 +6,9 @@
 #include <click/vector.hh>
 #include <set>
 
-#include "states/interfacestate.hh"
-#include "states/socketstate.hh"
-#include "utils/filtermode.hh"
+#include "../states/interfacestate.hh"
+#include "../states/socketstate.hh"
+#include "../utils/filtermode.hh"
 
 using std::set;
 

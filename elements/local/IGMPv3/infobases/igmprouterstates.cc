@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "igmprouterstates.hh"
-#include "utils/vectoroperations.hh"
+#include "../utils/vectoroperations.hh"
 
 using namespace vectoroperations;
 
