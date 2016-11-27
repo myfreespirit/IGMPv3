@@ -82,7 +82,7 @@ REPORT_MODE IGMPClientStates::saveSocketState(unsigned int port, unsigned int in
 	bool hasExcludeFilterBefore = checkExcludeMode(interface, groupAddress);
  
 	Vector<SocketState> vCopySocketStates = _socketStates.get(port);
-	
+
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
 		// delete entry with matching interface and groupAddress if present
 		for (Vector<SocketState>::iterator it = vCopySocketStates.begin(); it != vCopySocketStates.end(); ++it) {
@@ -152,6 +152,9 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 
 	// remove old entry on leave
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
+		if (interface >= _interfaceStates.size())
+			return;
+
 		Vector<InterfaceState> vInterfaces = _interfaceStates.at(interface);
 		Vector<InterfaceState>::iterator it;
 		for (it = vInterfaces.begin(); it != vInterfaces.end(); it++) {

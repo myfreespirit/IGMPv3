@@ -31,7 +31,7 @@ void Reporter::reportGroupState(IPAddress group)
     if (_states->_interfaceStates.size() == 0) {
         return;
     }
-    
+
 	// assume group query arrived at interface 0
     int groupIndex;
 	int totalSources;
@@ -96,7 +96,7 @@ void Reporter::reportGroupState(IPAddress group)
     report->checksum = click_in_cksum((unsigned char*) report, messageSize);
     
 	q->set_dst_ip_anno(_states->_destination);
-    
+
 	output(interface).push(q);
 }
 
@@ -286,7 +286,7 @@ int Reporter::leaveGroup(const String &conf, Element* e, void* thunk, ErrorHandl
 	// default values for arguments
 	unsigned int port = 1234;
 	unsigned int interface = 0;
-	IPAddress groupAddress = IPAddress("225.1.1.1");
+	IPAddress groupAddress = IPAddress("225.0.0.1");
 	FilterMode filter = MODE_IS_INCLUDE;
 	set<String> sources;
 
