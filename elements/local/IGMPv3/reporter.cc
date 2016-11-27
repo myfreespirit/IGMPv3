@@ -41,11 +41,15 @@ void Reporter::reportGroupState(IPAddress group)
 
 	for (groupIndex = 0; groupIndex < _states->_interfaceStates.at(interface).size(); groupIndex++) {
 		if (_states->_interfaceStates.at(interface).at(groupIndex)._groupAddress == group) {
-			totalSources = _states->_interfaceStates.at(interface).at(groupIndex)._sources.size();
 			filter = _states->_interfaceStates.at(interface).at(groupIndex)._filter;
 			sources = _states->_interfaceStates.at(interface).at(groupIndex)._sources;
-		}	
+			totalSources = sources.size();
+		}
 	}
+
+	// check if client is a member of that group first
+	if (groupIndex == _states->_interfaceStates.at(interface).size())
+		return;
 
     int headroom = sizeof(click_ether);
 	int headerSize = sizeof(click_ip);

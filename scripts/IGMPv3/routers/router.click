@@ -30,8 +30,13 @@ elementclass Router {
 					$client2_address:ip/32 0,
 					$server_address:ipnet 1,
 					$client1_address:ipnet 2,
-					$client2_address:ipnet 3);
-	
+					$client2_address:ipnet 3,
+					224.0.0.0/4 4);  // *
+
+	// * multicast packets in the range of 224.0.0.0 to 239.255.255.255
+	// but that aren't encapped with IP IGMP protocol
+	// those are processed by the querier::Querier
+
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (3);
 	
@@ -62,7 +67,6 @@ elementclass Router {
 	input[1]
 		-> HostEtherFilter($client1_address)
 		-> ip_igmp_class1::IPClassifier(ip proto 2, -)[1]
-		-> IPPrint("router received a packet on interface 1")
 		-> client1_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client1_address)
 		-> [1]output;
@@ -86,7 +90,6 @@ elementclass Router {
 	input[2]
 		-> HostEtherFilter($client2_address)
 		-> ip_igmp_class2::IPClassifier(ip proto 2, -)[1]
-		-> IPPrint("router received a packet on interface 2")
 		-> client2_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client2_address)
 		-> [2]output;
@@ -195,6 +198,18 @@ elementclass Router {
 		-> client1_arpq;
 
 	querier[2]
+		-> client2_arpq;
+
+	rt[4]
+		-> m_cast_sender::MulticastSender(ROUTER_STATES igmp_router_states);
+
+	m_cast_sender[0]
+		-> server_arpq;
+
+	m_cast_sender[1]
+		-> client1_arpq;
+
+	m_cast_sender[2]
 		-> client2_arpq;
 }
 

@@ -24,6 +24,8 @@ public:
 	void updateCurrentState(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 	QUERY_MODE updateFilterChange(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 
+	bool isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source);
+
 	/**
 	 * handlers
 	 */

@@ -186,6 +186,37 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 	}
 }
 
+bool IGMPClientStates::isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source)
+{
+	if (interface >= _interfaceStates.size())
+		return false;
+
+	Vector<InterfaceState> states = _interfaceStates.at(interface);
+	Vector<InterfaceState>::const_iterator it;
+	std::set<String> sources;
+	for (it = states.begin(); it != states.end(); it++) {
+		if (it->_groupAddress == group) {
+			sources = it->_sources;
+			break;
+		}
+	}
+
+	FilterMode filter = it->_filter;
+	for (std::set<String>::const_iterator it2 = sources.begin(); it2 != sources.end(); it2++) {
+		if (filter == MODE_IS_EXCLUDE) {
+			if (IPAddress(*it2) == source) {
+				return false;
+			}
+		} else if (filter == MODE_IS_INCLUDE) {
+			if (IPAddress(*it2) == source) {
+				return true;
+			}
+		}
+	}
+
+	return (filter == MODE_IS_EXCLUDE) ? true : false;
+}
+
 String IGMPClientStates::socketStates(Element* e, void* thunk)
 {
 	IGMPClientStates* me = (IGMPClientStates*) e;

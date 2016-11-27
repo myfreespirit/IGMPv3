@@ -31,6 +31,8 @@ public:
 	REPORT_MODE saveSocketState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	void saveInterfaceState(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 
+	bool isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source);
+
 	/**
 	 * handlers
 	 */

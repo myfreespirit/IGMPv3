@@ -94,7 +94,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
-	click_chatter("router's filter mode %d vs %u", routerRecord._filter, filter);
+	click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
 	
 	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
@@ -156,7 +156,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			
 	_records.at(interface)[groupAddress] = routerRecord;
 
-	click_chatter("NEW FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
+	click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
 }
 
 // RFC 3376, page 31 - 33
@@ -170,7 +170,7 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 	
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
-	click_chatter("router's filter mode %d vs %u", routerRecord._filter, filter);
+	click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
 	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
@@ -211,9 +211,37 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 
 	_records.at(interface)[groupAddress] = routerRecord;
 
-	click_chatter("NEW FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
+	click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
 
 	return result;
+}
+
+bool IGMPRouterStates::isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source)
+{
+	if (interface >= _records.size())
+		return false;
+	
+	FilterMode filter = _records.at(interface).get(group)._filter;
+	Vector<SourceRecord> blockedSourceList = _records.at(interface).get(group)._blockingSet;
+
+	Vector<SourceRecord>::const_iterator it;
+	for (it = blockedSourceList.begin(); it != blockedSourceList.end(); it++) {
+		if (filter == MODE_IS_EXCLUDE) {
+			if (it->_sourceAddress == source) {
+				return false;
+			}
+		} else if (filter == MODE_IS_INCLUDE) {
+			if (it->_sourceAddress == source) {
+				return true;
+			}
+		}
+	}
+	
+	if (filter == MODE_IS_EXCLUDE) {
+		return true;
+	} else if (filter == MODE_IS_INCLUDE) {
+		return false;
+	}
 }
 
 String IGMPRouterStates::recordStates(Element* e, void* thunk)
@@ -234,6 +262,8 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 			int amountOfAllows = record._forwardingSet.size();
 			int amountOfBlocks = record._blockingSet.size();
 
+			// TODO refactor output, so it won't duplicate unnecessary fields
+			//  	that will also FIX empty source set records that aren't displayed
 			for (int k = 0; k < std::max(amountOfAllows, amountOfBlocks); k++) {
 				output += "\t " + String(i) + " | ";
 
@@ -254,6 +284,7 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 				output += "X sec \n";
 			}
 		}
+		output += "\n";
 	}
 
 	output += "\n";
