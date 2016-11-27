@@ -25,6 +25,77 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
+void Reporter::reportGroupState(IPAddress group)
+{
+	// skip non existent interface states
+    if (_states->_interfaceStates.size() == 0) {
+        return;
+    }
+    
+	// assume group query arrived at interface 0
+    int groupIndex;
+	int totalSources;
+	FilterMode filter;
+	set<String> sources;
+	int interface = 0;
+
+	for (groupIndex = 0; groupIndex < _states->_interfaceStates.at(interface).size(); groupIndex++) {
+		if (_states->_interfaceStates.at(interface).at(groupIndex)._groupAddress == group) {
+			totalSources = _states->_interfaceStates.at(interface).at(groupIndex)._sources.size();
+			filter = _states->_interfaceStates.at(interface).at(groupIndex)._filter;
+			sources = _states->_interfaceStates.at(interface).at(groupIndex)._sources;
+		}	
+	}
+
+    int headroom = sizeof(click_ether);
+	int headerSize = sizeof(click_ip);
+	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(struct Addresses) * totalSources;
+	int packetSize = headerSize + messageSize;
+
+	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
+
+	if (!q) {
+		return;
+	}
+
+	memset(q->data(), '\0', packetSize);
+
+	click_ip* iph = (click_ip*) q->data();
+	iph->ip_v = 4;
+	iph->ip_hl = sizeof(click_ip) >> 2;
+	iph->ip_len = htons(q->length());
+	iph->ip_p = IP_PROTO_IGMP;
+	iph->ip_ttl = 1;
+	iph->ip_src = _states->_source;
+	iph->ip_dst = _states->_destination;
+	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
+	
+    Report* report = (Report *) (iph + 1);
+    report->type = IGMP_TYPE_REPORT;
+    report->checksum = htons(0);
+    report->number_of_group_records = htons(1);    
+
+	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
+	groupRecord->type = filter; 
+	groupRecord->aux_data_len = 0;
+	groupRecord->multicast_address = group; 
+
+	// fill source list of matching (interface, group)
+	groupRecord->number_of_sources = htons(totalSources);
+	set<String>::iterator it = sources.begin();
+	Addresses* addresses = (Addresses*) (groupRecord + 1);
+	for (int i = 0; i < totalSources; i++) {
+		addresses->array[i] = IPAddress(*it);
+		std::advance(it, 1);
+	}
+
+    report->checksum = click_in_cksum((unsigned char*) report, messageSize);
+    
+	q->set_dst_ip_anno(_states->_destination);
+    
+	output(interface).push(q);
+}
+
 void Reporter::reportCurrentState()
 {
 	// skip non existent interface states
@@ -109,7 +180,7 @@ void Reporter::push(int, Packet *p)
 			reportCurrentState();
 		} else {
 			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
-			// reportCurrentState(query->group_address);
+			reportGroupState(query->group_address);
 		}
 	}
 }
