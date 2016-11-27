@@ -326,7 +326,7 @@ int Reporter::joinGroup(const String &conf, Element* e, void* thunk, ErrorHandle
 	// default values for arguments
 	unsigned int port = 1234;
 	unsigned int interface = 0;
-	IPAddress groupAddress = IPAddress("225.1.1.1");
+	IPAddress groupAddress = IPAddress("225.0.0.1");
 	String sFilter;
 	FilterMode filter = MODE_IS_EXCLUDE;
 	Vector<String> vSources;

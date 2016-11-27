@@ -20,7 +20,7 @@ CLIENTS
 * Joins (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, empty SRC list)
 	write client21/reporter.join_group
 	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER INCLUDE, SRC 192.168.1.1, SRC 1.1.1.2
-	write client32/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1
+	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1
 
 * Leaves (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1)
 	write client21/reporter.leave_group
@@ -35,8 +35,7 @@ ROUTERS
 * General Query (sends out on all attached interfaces)
 	write router/querier.general_query
 
-* Group Specific Query (by default INTERFACE 0, GROUP 225.0.0.1)
-	write router/querier.group_query
+* Group Specific Query
 	write router/querier.group_query INTERFACE 0, GROUP 225.0.0.1
 
 * Router records per interface and per multicast group
