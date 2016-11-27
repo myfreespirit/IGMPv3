@@ -55,14 +55,30 @@ Vector<IPAddress> IGMPRouterStates::getSourceAddresses(unsigned int interface, I
 	return vSources;
 }
 
+/*
+ * Deletes froms records all matching sources from set x
+ */
+void IGMPRouterStates::removeSourceRecords(Vector<SourceRecord>& records, Vector<IPAddress> x)
+{
+	Vector<SourceRecord>::iterator it;
+	Vector<IPAddress>::const_iterator it2;
+	for (it = records.begin(); it != records.end(); it++) {
+		for (it2 = x.begin(); it2 != x.end(); it2++) {
+			if (it->_sourceAddress == *it2) {
+				records.erase(it);
+				it--;
+				break;
+			}
+		}
+	}
+}
 
 Vector<SourceRecord> IGMPRouterStates::transformToSourceRecords(Vector<IPAddress> a)
 {
 	Vector<SourceRecord> result;
-	for(Vector<IPAddress>::iterator it = a.begin(); it != a.end(); it++){
+	for (Vector<IPAddress>::iterator it = a.begin(); it != a.end(); it++) {
 		SourceRecord sr(*it);		
 		result.push_back(sr);
-	
 	}
 
 	return result;
@@ -80,7 +96,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
 	click_chatter("router's filter mode %d vs %u", routerRecord._filter, filter);
 	
-	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, routerRecord._filter);
+	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
 	if (routerRecord._filter == MODE_IS_INCLUDE) {	
 		if (filter == MODE_IS_INCLUDE) {
@@ -88,43 +104,52 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			
 			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources);
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
-			_records.at(interface)[groupAddress] = routerRecord;
 
 			// TODO set source timer for set B to GMI
 		} else {
 			// client-filter-mode is EXCLUDE
-				
+			
 			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
 			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 
+			Vector<IPAddress> toDeleteFromForwards = vector_difference(routerForwardingSources, sources);
+			
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
+			removeSourceRecords(routerRecord._forwardingSet, toDeleteFromForwards);
 			routerRecord._filter = MODE_IS_EXCLUDE;
 
 			// TODO set source timer for set (B-A) to 0
-			// TODO delete set (A-B) from source record
 			// TODO set group timer to GMI
 		}
 	} else {
 		// router-filter-mode is and remains EXCLUDE
-		Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress,MODE_IS_EXCLUDE);
+		Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress, MODE_IS_EXCLUDE);
 
 		if (filter == MODE_IS_INCLUDE) {
 			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources); 
 			Vector<IPAddress> newBlocking = vector_difference(routerBlockingSources, sources); 	
+
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
+			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 
 			// TODO set source timer for set A to GMI
 		} else {
 			// client-filter-mode is EXCLUDE
 
 			Vector<IPAddress> newForwarding = vector_difference(sources, routerBlockingSources);
-			Vector<IPAddress> newBlocking = vector_intersect(routerBlockingSources, sources);
+			Vector<IPAddress> newBlocking = vector_intersect(sources, routerBlockingSources);
+			Vector<IPAddress> toDeleteFromForwards = vector_difference(routerForwardingSources, sources);
+			Vector<IPAddress> toDeleteFromBlocks = vector_difference(routerBlockingSources, sources);
+
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 
+			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
+			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
+			removeSourceRecords(routerRecord._forwardingSet, toDeleteFromForwards);
+			removeSourceRecords(routerRecord._blockingSet, toDeleteFromBlocks);
+
 			// TODO set source timers for set (A-X-Y) to GMI
-			// TODO delete set (X-A) from source records
-			// TODO delete set (Y-A) from soruce records
 			// TODO set group timer to GMI
 		}
 	}
@@ -144,16 +169,20 @@ void IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddress grou
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
 	click_chatter("router's filter mode %d vs %u", routerRecord._filter, filter);
+	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
+
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == CHANGE_TO_EXCLUDE_MODE) {
 			// TODO set group timer for routerRecord
 			// TODO set source timer for difference set (B-A)
-			// TODO delete (A-B) source records
-			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, routerRecord._filter);
+
 			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
 			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 	
+			Vector<IPAddress> toDeleteForwards = vector_difference(routerForwardingSources, sources);
+
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
+			removeSourceRecords(routerRecord._forwardingSet, toDeleteForwards);
 			routerRecord._filter = MODE_IS_EXCLUDE;
 		} else {
 			// from INCLUDE to ALLOW | BLOCK | TO_IN isn't required in our version
@@ -162,10 +191,10 @@ void IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddress grou
 		// router-filter-mode is EXCLUDE	
 		if (filter == CHANGE_TO_INCLUDE_MODE) {
 			// router-filter-mode remains EXCLUDE
+
 			// TODO send group specific query for groupAddress
 			// TODO set source timer for sources A
-			Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress,MODE_IS_INCLUDE);
-			Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress,MODE_IS_EXCLUDE);
+			Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress, MODE_IS_EXCLUDE);
 
 			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources); 
 			Vector<IPAddress> newBlocking = vector_difference(routerBlockingSources, sources); 
