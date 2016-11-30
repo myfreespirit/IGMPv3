@@ -35,7 +35,7 @@ void Reporter::reportGroupState(IPAddress group)
 
 	if (group == IPAddress("224.0.0.1"))
 		return;
-
+    
 	// assume group query arrived at interface 0
     int groupIndex;
 	int totalSources;
@@ -48,6 +48,7 @@ void Reporter::reportGroupState(IPAddress group)
 			filter = _states->_interfaceStates.at(interface).at(groupIndex)._filter;
 			sources = _states->_interfaceStates.at(interface).at(groupIndex)._sources;
 			totalSources = sources.size();
+            break;
 		}
 	}
 

@@ -264,7 +264,7 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 
 			// TODO refactor output, so it won't duplicate unnecessary fields
 			//  	that will also FIX empty source set records that aren't displayed
-			for (int k = 0; k < std::max(amountOfAllows, amountOfBlocks); k++) {
+			for (int k = 0; k <= std::max(amountOfAllows, amountOfBlocks); k++) {
 				output += "\t " + String(i) + " | ";
 
 				output += " " + group.unparse() + "  | ";
