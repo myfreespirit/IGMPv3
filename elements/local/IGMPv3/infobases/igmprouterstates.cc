@@ -222,26 +222,27 @@ bool IGMPRouterStates::isMulticastAllowed(unsigned int interface, IPAddress grou
 		return false;
 	
 	FilterMode filter = _records.at(interface).get(group)._filter;
-	Vector<SourceRecord> blockedSourceList = _records.at(interface).get(group)._blockingSet;
 
-	Vector<SourceRecord>::const_iterator it;
-	for (it = blockedSourceList.begin(); it != blockedSourceList.end(); it++) {
-		if (filter == MODE_IS_EXCLUDE) {
-			if (it->_sourceAddress == source) {
-				return false;
-			}
-		} else if (filter == MODE_IS_INCLUDE) {
-			if (it->_sourceAddress == source) {
-				return true;
-			}
-		}
-	}
-	
 	if (filter == MODE_IS_EXCLUDE) {
-		return true;
-	} else if (filter == MODE_IS_INCLUDE) {
-		return false;
-	}
+	    Vector<SourceRecord> blockedSourceList = _records.at(interface).get(group)._blockingSet;
+        Vector<SourceRecord>::const_iterator it;
+        for (it = blockedSourceList.begin(); it != blockedSourceList.end(); it++) {
+            if (it->_sourceAddress == source) {
+                return false;
+            }
+        } 
+        return true;
+    } else if (filter == MODE_IS_INCLUDE) {
+	    Vector<SourceRecord> allowedSourceList = _records.at(interface).get(group)._forwardingSet;
+        Vector<SourceRecord>::const_iterator it;
+        for (it = allowedSourceList.begin(); it != allowedSourceList.end(); it++) {
+            if (it->_sourceAddress == source) {
+                return true;
+            }
+        } 
+        return false;
+ 
+    }
 }
 
 String IGMPRouterStates::recordStates(Element* e, void* thunk)
@@ -264,7 +265,7 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 
 			// TODO refactor output, so it won't duplicate unnecessary fields
 			//  	that will also FIX empty source set records that aren't displayed
-			for (int k = 0; k <= std::max(amountOfAllows, amountOfBlocks); k++) {
+			for (int k = 0; k < std::max(amountOfAllows, amountOfBlocks); k++) {
 				output += "\t " + String(i) + " | ";
 
 				output += " " + group.unparse() + "  | ";
