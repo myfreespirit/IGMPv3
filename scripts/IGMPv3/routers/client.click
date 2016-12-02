@@ -51,20 +51,20 @@ elementclass Client {
 	// Incoming Packets
 	input
 		-> HostEtherFilter($address)
-		-> ip_igmp_class::IPClassifier(ip proto 2, -)[1]
 		-> in_cl :: Classifier(12/0806 20/0001, 12/0806 20/0002, 12/0800)
 		-> arp_res :: ARPResponder($address)
-		-> output;
-
-	ip_igmp_class[0]
-		-> Strip(14)
-		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
-		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
 		-> output;
 
 	in_cl[1]
 		-> [1]arpq;
 	
 	in_cl[2]
+		-> ip_igmp_class::IPClassifier(ip proto 2, -)[1]
 		-> ip;
+
+	ip_igmp_class[0]
+		-> Strip(14)
+		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
+		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
+		-> output;
 }

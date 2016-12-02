@@ -43,14 +43,9 @@ elementclass Router {
 	// Input and output paths for interface 0
 	input
 		-> HostEtherFilter($server_address)
-		-> ip_igmp_class0::IPClassifier(ip proto 2, -)[1]
 		-> server_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($server_address)
 		-> output;
-
-	ip_igmp_class0[0]
-		-> Strip(14)
-		-> [0]querier;
 
 	server_arpq :: ARPQuerier($server_address)
 		-> output;
@@ -60,20 +55,20 @@ elementclass Router {
 		-> [1]server_arpq;
 
 	server_class[2]
+		-> ip_igmp_class0::IPClassifier(ip proto 2, -)[1]
 		-> Paint(1)
 		-> ip;
 
+	ip_igmp_class0[0]
+		-> Strip(14)
+		-> [0]querier;
+	
 	// Input and output paths for interface 1
 	input[1]
 		-> HostEtherFilter($client1_address)
-		-> ip_igmp_class1::IPClassifier(ip proto 2, -)[1]
 		-> client1_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client1_address)
 		-> [1]output;
-
-	ip_igmp_class1[0]
-		-> Strip(14)
-		-> [1]querier;
 
 	client1_arpq :: ARPQuerier($client1_address)
 		-> [1]output;
@@ -83,20 +78,20 @@ elementclass Router {
 		-> [1]client1_arpq;
 
 	client1_class[2]
+		-> ip_igmp_class1::IPClassifier(ip proto 2, -)[1]
 		-> Paint(2)
 		-> ip;
 
+	ip_igmp_class1[0]
+		-> Strip(14)
+		-> [1]querier;
+	
 	// Input and output paths for interface 2
 	input[2]
 		-> HostEtherFilter($client2_address)
-		-> ip_igmp_class2::IPClassifier(ip proto 2, -)[1]
 		-> client2_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, -)
 		-> ARPResponder($client2_address)
 		-> [2]output;
-
-    ip_igmp_class2[0]
-		-> Strip(14)
-		-> [2]querier;
 
 	client2_arpq :: ARPQuerier($client2_address)
 		-> [2]output;
@@ -106,8 +101,13 @@ elementclass Router {
 		-> [1]client2_arpq;
 
 	client2_class[2]
+		-> ip_igmp_class2::IPClassifier(ip proto 2, -)[1]
 		-> Paint(3)
 		-> ip;
+
+	ip_igmp_class2[0]
+		-> Strip(14)
+		-> [2]querier;
 	
 	// Local delivery
 	rt[0]
