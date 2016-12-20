@@ -1,0 +1,75 @@
+RFC 3376
+
+p.6
+Note that IGMP Queries and Reports are not subject to source filtering and must always be processed by hosts and routers.
+
+p.8
+Unrecognized message types MUST be silently ignored.
+
+p.10
+When receiving packets, the checksum MUST be verified before processing a packet.
+
+p.11
+If the Packet Length field in the IP header of a received Query indicates that there are additional octets of data present, beyond
+the fields described here, IGMPv3 implementations MUST include those octets in the computation to verify the received IGMP Checksum, but
+MUST otherwise ignore those additional octets. When sending a Query, an IGMPv3 implementation MUST NOT include additional octets beyond the fields described here.
+
+p.12
+In IGMPv3, General Queries are sent with an IP destination address of 224.0.0.1, the all-systems multicast address.
+Group-Specific and Group-and-Source-Specific Queries are sent with an IP destination address equal to the multicast address of interest.
+*However*, a system MUST accept and process any Query whose IP Destination 
+Address field contains *any* of the addresses (unicast or multicast) assigned to the interface on which the Query arrives.
+
+p.14
+When receiving packets, the checksum MUST be verified before processing a message.
+
+p.15
+If the Packet Length field in the IP header of a received Report indicates that there are additional octets of data present, beyond 
+the last Group Record, IGMPv3 implementations MUST include those octets in the computation to verify the received IGMP Checksum, but
+MUST otherwise ignore those additional octets. When sending a Report, an IGMPv3 implementation MUST NOT include additional octets beyond the last Group Record.
+
+p.17
+Routers MUST accept a report with a source address of 0.0.0.0.
+
+p.18
+Version 3 Reports are sent with an IP destination address of 224.0.0.22, to which all IGMPv3-capable multicast routers listen.
+
+p.18
+If the set of Group Records required in a Report does not fit within the size limit of a single Report message (as determined by the MTU
+of the network on which it will be sent), the Group Records are sent in as many Report messages as needed to report the entire set.
+
+p.19
+The all-systems multicast address, 224.0.0.1, is handled as a special case. On all systems -- that is all hosts and routers, including
+multicast routers -- reception of packets destined to the all-systems multicast address, from all sources, is permanently enabled on all
+interfaces on which multicast reception is supported. No IGMP messages are ever sent regarding the all-systems multicast address.
+
+p.20
+A change of interface state causes the system to immediately transmit a State-Change Report from that interface.
+
+p.25
+On each interface over which this protocol is being run, the router MUST enable reception of multicast address 224.0.0.22,
+from all sources (and MUST perform the group member part of IGMPv3 for that address on that interface).
+
+p.25
+When a group membership is terminated at a system or traffic from a particular source is no longer desired, a multicast router must query
+for other members of the group or listeners of the source before deleting the group (or source) and pruning its traffic.
+
+p.25
+Group-Specific Queries are sent when a router receives a State-Change record indicating a system is leaving a group.
+
+p.26
+Multicast routers implementing IGMPv3 keep state per group per attached network.
+That state conceptually consists of a set of records of the form: (multicast address, group timer, filter-mode, (source records))
+Each source record is of the form: (source address{, source timer})
+
+p.27
+As a rule, once a group record with a filter-mode of EXCLUDE is received, the router filter-mode for that group will be EXCLUDE.
+
+p.27
+Because a reported group record with a filter-mode of EXCLUDE will cause a router to transition its filter-mode for that group to EXCLUDE,
+a mechanism for transitioning a router’s filter-mode back to INCLUDE must exist. 
+If all systems with a group record in EXCLUDE filter-mode cease reporting,
+it is desirable for the router filter-mode for that group to transition back to INCLUDE mode. 
+This transition occurs when the group timer expires and is explained in detail in section 6.5.
+
+
