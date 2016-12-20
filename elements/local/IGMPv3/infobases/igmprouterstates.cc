@@ -263,17 +263,26 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 			int amountOfAllows = record._forwardingSet.size();
 			int amountOfBlocks = record._blockingSet.size();
 
+			output += "\t " + String(i) + " | ";
+			output += " " + group.unparse() + "  | ";
+			output += "X sec | ";
+			output += (record._filter == MODE_IS_INCLUDE) ? "INCLUDE | " : "EXCLUDE | ";
+			
+			output += (amountOfAllows) ? record._forwardingSet.at(0)._sourceAddress.unparse() : " \t  ";
+			output += " | ";
+			output += "X sec | ";
+			output += (amountOfBlocks) ? record._blockingSet.at(0)._sourceAddress.unparse() : " \t  ";
+			output += " | ";
+			output += "X sec \n";
+
 			// TODO refactor output, so it won't duplicate unnecessary fields
 			//  	that will also FIX empty source set records that aren't displayed
-			for (int k = 0; k < std::max(amountOfAllows, amountOfBlocks); k++) {
-				output += "\t " + String(i) + " | ";
+			for (int k = 1; k < std::max(amountOfAllows, amountOfBlocks); k++) {
+				output += "\t   | ";
+				output += " \t \t  | ";
+				output += "      | ";
+				output += "        | ";
 
-				output += " " + group.unparse() + "  | ";
-
-				output += "X sec | ";
-
-				output += (record._filter == MODE_IS_INCLUDE) ? "INCLUDE | " : "EXCLUDE | ";
-				
 				output += (k < amountOfAllows) ? record._forwardingSet.at(k)._sourceAddress.unparse() : " \t  ";
 				output += " | ";
 				
@@ -284,6 +293,7 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 				
 				output += "X sec \n";
 			}
+			output += "\n";
 		}
 		output += "\n";
 	}

@@ -9,6 +9,7 @@ After cloning this project to a preferred location we will have to setup two sym
 cd click-2.0.1/  
 ln -s ../../igmpv3/scripts/IGMPv3 scripts/IGMPv3  
 ln -s ../../../igmpv3/elements/local/IGMPv3 elements/local/IGMPv3  
+make elemlist && make -j8
 
 Make sure the path to your cloned repository is correct. When using relative path you need to take the viewpoint of click-2.0.1/scripts/ and click-2.0.1/elements/local/ respectively. In the example above we've cloned the repository right next to click-2.0.1 directory.
 
