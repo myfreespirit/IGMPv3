@@ -215,7 +215,7 @@ void Reporter::run_timer(Timer*)
 }
 
 
-void setMaxRespTime(Packet* p)
+void Reporter::setMaxRespTime(Packet* p)
 {
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1);
@@ -227,6 +227,8 @@ void setMaxRespTime(Packet* p)
 		uint8_t mant = (query->max_resp_code & 15);
 		this->_generalMaxRespTime = (mant | 0x10) << (exp + 3);
 	}
+	this->_generalMaxRespTime = this->_generalMaxRespTime/10;
+	click_chatter("The max resp time is %d",  _generalMaxRespTime);
 }
 
 void Reporter::push(int interface, Packet *p)
@@ -237,6 +239,7 @@ void Reporter::push(int interface, Packet *p)
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress("0.0.0.0")) {
 			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
+			setMaxRespTime(p);
             setQRVCounter(interface, p);
         } else {
 			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());

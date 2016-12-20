@@ -5,7 +5,6 @@
 #include <click/element.hh>
 #include <set>
 #include "infobases/igmpclientstates.hh"
-#include "states/generaltimerstate.hh"
 
 using std::set;
 
@@ -36,7 +35,7 @@ private:
 	void reportGroupState(IPAddress group);
 	void reportFilterModeChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	// void reportSourceListChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
-
+	void setMaxRespTime(Packet* p);
     void setQRVCounter(int interface, Packet* p);
     void run_timer(Timer*);
 
@@ -46,6 +45,7 @@ private:
     int _generalCounter;
     Timer _generalTimer;
 	int _generalMaxRespTime;
+
 };
 
 
