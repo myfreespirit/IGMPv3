@@ -11,7 +11,7 @@
 
 CLICK_DECLS
 
-Reporter::Reporter()
+Reporter::Reporter() : _generalTimer(this)
 {
 }
 
@@ -22,6 +22,8 @@ Reporter::~Reporter()
 int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "CLIENT_STATES", cpkM, cpElementCast, "IGMPClientStates", &_states, cpEnd) < 0) return -1;
+
+    _generalTimer.initialize(this);
 
 	return 0;
 }
@@ -178,7 +180,33 @@ void Reporter::reportCurrentState()
 	output(interface).push(q);
 }
 
-void Reporter::push(int, Packet *p)
+void Reporter::setQRVCounter(int interface, Packet* p)
+{
+    click_ip* iph = (click_ip*) p->data();
+    Query* q = (Query* )(iph + 1);
+
+    // TODO resize vector
+    // _generalTimerStates.at(interface)._reportCounter = q->resvSQRV & 7;
+    // _generalTimerStates.at(interface)._timer->schedule_after_msec(1000);
+    _generalCounter = q->resvSQRV & 7;
+    _generalTimer.schedule_after_msec(1000);
+    // TODO determine report interval from max resp code
+}
+
+void Reporter::run_timer(Timer*)
+{
+    reportCurrentState();
+    // TODO determine correct interface number
+    //int counter = --_generalTimerStates.at(0)._reportCounter;
+
+    if (--_generalCounter > 0) {
+        // _generalTimerStates.at(0)._timer->schedule_after_msec(1000);
+        _generalTimer.schedule_after_msec(1000);
+        // TODO determine report interval from max resp code
+    }
+}
+
+void Reporter::push(int interface, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1); 
@@ -186,8 +214,8 @@ void Reporter::push(int, Packet *p)
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress("0.0.0.0")) {
 			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
-			reportCurrentState();
-		} else {
+            setQRVCounter(interface, p);
+        } else {
 			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
 			reportGroupState(query->group_address);
 		}

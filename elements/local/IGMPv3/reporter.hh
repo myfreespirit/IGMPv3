@@ -1,9 +1,11 @@
 #ifndef CLICK_REPORTER_HH
 #define CLICK_REPORTER_HH
 
+#include <click/timer.hh>
 #include <click/element.hh>
 #include <set>
 #include "infobases/igmpclientstates.hh"
+#include "states/generaltimerstate.hh"
 
 using std::set;
 
@@ -35,7 +37,14 @@ private:
 	void reportFilterModeChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	// void reportSourceListChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 
+    void setQRVCounter(int interface, Packet* p);
+    void run_timer(Timer*);
+
 	IGMPClientStates* _states;
+    // TODO implement container for multiple interfaces
+    // Vector<GeneralTimerState> _generalTimerStates;
+    int _generalCounter;
+    Timer _generalTimer;
 };
 
 
