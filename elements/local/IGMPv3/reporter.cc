@@ -9,9 +9,12 @@
 #include <clicknet/ether.h>
 #include <clicknet/ip.h>
 
+#include <stdlib.h>
+#include <time.h>
+
 CLICK_DECLS
 
-Reporter::Reporter() : _generalTimer(this)
+Reporter::Reporter() : _generalTimer(this), _generalMaxRespTime(10)
 {
 }
 
@@ -188,8 +191,11 @@ void Reporter::setQRVCounter(int interface, Packet* p)
     // TODO resize vector
     // _generalTimerStates.at(interface)._reportCounter = q->resvSQRV & 7;
     // _generalTimerStates.at(interface)._timer->schedule_after_msec(1000);
+	//The schedule value is a random number between 0 and maxRespTime in millisecond 
     _generalCounter = q->resvSQRV & 7;
-    _generalTimer.schedule_after_msec(1000);
+	srand(time(NULL));	
+	int value = rand() % _generalMaxRespTime+1; 
+    _generalTimer.schedule_after_msec(1000*value);
     // TODO determine report interval from max resp code
 }
 
@@ -201,9 +207,26 @@ void Reporter::run_timer(Timer*)
 
     if (--_generalCounter > 0) {
         // _generalTimerStates.at(0)._timer->schedule_after_msec(1000);
-        _generalTimer.schedule_after_msec(1000);
+		srand(time(NULL));	
+		int value = rand() % _generalMaxRespTime+1;
+   	 	_generalTimer.schedule_after_msec(1000*value);
         // TODO determine report interval from max resp code
     }
+}
+
+
+void setMaxRespTime(Packet* p)
+{
+	click_ip* iph = (click_ip*) p->data();
+	Query* query = (Query*) (iph + 1);
+	if(query->max_resp_code < 128){
+		this->_generalMaxRespTime = query->max_resp_code;
+	}
+	else{
+		uint8_t exp = (query->max_resp_code & 112) >> 4 ;
+		uint8_t mant = (query->max_resp_code & 15);
+		this->_generalMaxRespTime = (mant | 0x10) << (exp + 3);
+	}
 }
 
 void Reporter::push(int interface, Packet *p)

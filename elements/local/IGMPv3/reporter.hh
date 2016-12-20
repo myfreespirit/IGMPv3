@@ -45,6 +45,7 @@ private:
     // Vector<GeneralTimerState> _generalTimerStates;
     int _generalCounter;
     Timer _generalTimer;
+	int _generalMaxRespTime;
 };
 
 
