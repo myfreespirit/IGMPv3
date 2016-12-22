@@ -14,7 +14,7 @@
 
 CLICK_DECLS
 
-Reporter::Reporter() : _generalTimer(this), _generalMaxRespTime(10)
+Reporter::Reporter()
 {
 }
 
@@ -26,7 +26,7 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "CLIENT_STATES", cpkM, cpElementCast, "IGMPClientStates", &_states, cpEnd) < 0) return -1;
 
-    _generalTimer.initialize(this);
+    // _generalTimer.initialize(this);
 
 	return 0;
 }
@@ -183,35 +183,64 @@ void Reporter::reportCurrentState()
 	output(interface).push(q);
 }
 
+void Reporter::handleExpiry(Timer*, void* data)
+{
+	TimerState* timerState = (TimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expire(timerState);
+}
+
 void Reporter::setQRVCounter(int interface, Packet* p)
 {
     click_ip* iph = (click_ip*) p->data();
     Query* q = (Query* )(iph + 1);
 
-    // TODO resize vector
-    // _generalTimerStates.at(interface)._reportCounter = q->resvSQRV & 7;
-    // _generalTimerStates.at(interface)._timer->schedule_after_msec(1000);
+	int counter = q->resvSQRV & 7;
+
+	// resize on first general query on particular interface
+	if (_generalTimerStates.size() <= interface) {
+		_generalTimerStates.resize(interface + 1);
+	}
+	if (_generalTimers.size() <= interface) {
+		_generalTimers.resize(interface + 1);
+	}
+
+	// initialize timerstate and timer if it was deleted after last report on previous general query
+	if (_generalTimerStates.at(interface) == NULL) {
+		_generalTimerStates.at(interface) = new TimerState();
+		_generalTimerStates.at(interface)->me = this;
+		_generalTimerStates.at(interface)->interface = interface;
+		_generalTimerStates.at(interface)->counter = counter;
+	}
+	if (_generalTimers.at(interface) == NULL) {
+		_generalTimers.at(interface) = new Timer(&handleExpiry, _generalTimerStates.at(interface));
+		_generalTimers.at(interface)->initialize(this);
+	}
+
 	//The schedule value is a random number between 0 and maxRespTime in millisecond 
-    _generalCounter = q->resvSQRV & 7;
 	srand(time(NULL));	
 	int value = rand() % _generalMaxRespTime+1; 
-    _generalTimer.schedule_after_msec(1000*value);
-    // TODO determine report interval from max resp code
+    _generalTimers.at(interface)->schedule_after_sec(value);
 }
 
-void Reporter::run_timer(Timer*)
+void Reporter::expire(TimerState* timerState)
 {
     reportCurrentState();
-    // TODO determine correct interface number
-    //int counter = --_generalTimerStates.at(0)._reportCounter;
+    int counter = --timerState->counter;
+	int interface = timerState->interface;
 
-    if (--_generalCounter > 0) {
-        // _generalTimerStates.at(0)._timer->schedule_after_msec(1000);
+    if (counter > 0) {
 		srand(time(NULL));	
 		int value = rand() % _generalMaxRespTime+1;
-   	 	_generalTimer.schedule_after_msec(1000*value);
-        // TODO determine report interval from max resp code
-    }
+   		_generalTimers.at(interface)->schedule_after_sec(value);
+    } else {
+		// free up memory after last report on general query
+		delete _generalTimerStates.at(interface);
+		_generalTimerStates.at(interface) = NULL;
+
+		delete _generalTimers.at(interface);
+		_generalTimers.at(interface) = NULL;
+	}
 }
 
 
@@ -228,7 +257,6 @@ void Reporter::setMaxRespTime(Packet* p)
 		this->_generalMaxRespTime = (mant | 0x10) << (exp + 3);
 	}
 	this->_generalMaxRespTime = this->_generalMaxRespTime/10;
-	click_chatter("The max resp time is %d",  _generalMaxRespTime);
 }
 
 void Reporter::push(int interface, Packet *p)

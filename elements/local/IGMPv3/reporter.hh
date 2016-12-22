@@ -10,6 +10,8 @@ using std::set;
 
 CLICK_DECLS
 
+struct TimerState;
+
 class Reporter: public Element {
 public:
 	Reporter();
@@ -37,17 +39,24 @@ private:
 	// void reportSourceListChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	void setMaxRespTime(Packet* p);
     void setQRVCounter(int interface, Packet* p);
-    void run_timer(Timer*);
 
-	IGMPClientStates* _states;
-    // TODO implement container for multiple interfaces
-    // Vector<GeneralTimerState> _generalTimerStates;
-    int _generalCounter;
-    Timer _generalTimer;
+    void expire(TimerState* timerState);
+	static void handleExpiry(Timer*, void* data);
+
+	// DATA MEMBERS
+	IGMPClientStates* _states;  // infobase
+
+	Vector<TimerState*> _generalTimerStates;
+	Vector<Timer*> _generalTimers;
+
 	int _generalMaxRespTime;
-
 };
 
+struct TimerState {
+	Reporter* me;
+	int interface;
+	int counter;
+};
 
 CLICK_ENDDECLS
 #endif
