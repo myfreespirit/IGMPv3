@@ -30,6 +30,8 @@ public:
 	 * handlers
 	 */
 	static String recordStates(Element* e, void* thunk);
+    static String getQRV(Element* e, void* thunk);
+    static int setQRV(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
 	void add_handlers();
 
 	/**
@@ -38,6 +40,8 @@ public:
 	IPAddress _source;
 	IPAddress _destination;
 	Vector<HashTable<IPAddress, RouterRecord> > _records;  // per interface, per group
+
+    unsigned int _qrv; 
 
 private:
 	// collects all source addresses either from _forwardingSet or _blockingSet depening on given filter for a router record with given interface and groupAddress

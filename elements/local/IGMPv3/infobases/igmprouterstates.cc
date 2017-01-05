@@ -11,7 +11,7 @@ using namespace vectoroperations;
 CLICK_DECLS
 
 
-IGMPRouterStates::IGMPRouterStates()
+IGMPRouterStates::IGMPRouterStates() : _qrv(2)
 {
 }
 
@@ -303,9 +303,46 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 	return output;
 }
 
+String IGMPRouterStates::getQRV(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    String output = String(me->_qrv) + "\n";
+
+    return output;
+}
+
+int IGMPRouterStates::setQRV(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+	IGMPRouterStates* me = (IGMPRouterStates *) e;
+
+    unsigned int qrv;
+
+	if (cp_va_kparse(conf, me, errh,
+			"VAL", cpkM + cpkP, cpUnsigned, &qrv,
+			cpEnd) < 0) {
+		return -1;
+	}
+
+    if (qrv == 0) {
+        return errh->error("QRV must not be equal to 0.");
+    } else if (qrv == 1) {
+        errh->warning("QRV should not be equal to 1.");
+    } else if (qrv > 7) {
+        qrv = 2;  // use default, as qrv is only 3 bits long
+        errh->warning("Max value for QRV is 7. Setting it to default: 2.");
+    }
+
+    me->_qrv = qrv;
+
+    return 0;
+}
+
 void IGMPRouterStates::add_handlers()
 {
 	add_read_handler("records", &recordStates, (void *) 0);
+    add_read_handler("qrv", &getQRV, (void *) 0);
+    add_write_handler("qrv", &setQRV, (void *) 0); 
 }
 
 

@@ -41,6 +41,10 @@ ROUTERS
 * Router records per interface and per multicast group
 	read router/igmp_router_states.records
 
+* Infobase Element values used by Querier
+    read router/igmp_router_states.qrv
+    write router/igmp_router_states.qrv 3
+
 
 # Authors
 Eduard Besjentsev  

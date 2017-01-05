@@ -73,7 +73,7 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
-		// TODO generate error
+        click_chatter("ERROR: Querier was unable to create a new WritablePacket.");
 		return;
 	}
 
@@ -95,10 +95,10 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 	query->max_resp_code = (group == IPAddress("0.0.0.0")) ? 100 : 10;
 	query->checksum = htons(0);
 	query->group_address = group;
-	query->resvSQRV = (0 << 4) | (0 << 3) | (2);
+	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_qrv);
 //	query->resv = 0;
 //	query->S = 0;
-//	query->QRV = 2;
+//	query->QRV = _states->_qrv;
 	query->QQIC = 125;
     query->number_of_sources = htons(0);
 

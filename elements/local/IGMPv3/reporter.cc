@@ -208,12 +208,13 @@ void Reporter::setQRVCounter(int interface, Packet* p)
 		_generalTimerStates.at(interface) = new TimerState();
 		_generalTimerStates.at(interface)->me = this;
 		_generalTimerStates.at(interface)->interface = interface;
-		_generalTimerStates.at(interface)->counter = counter;
 	}
 	if (_generalTimers.at(interface) == NULL) {
 		_generalTimers.at(interface) = new Timer(&handleExpiry, _generalTimerStates.at(interface));
 		_generalTimers.at(interface)->initialize(this);
 	}
+    // it's possible for a General Query to reset the counter if the client wasn't able to send out all QRV reports by the time of a new request
+    _generalTimerStates.at(interface)->counter = counter;  
 
     // Schedule timer on new General Query reception
 	// The schedule value is a random number between 0 and maxRespTime inclusive in seconds
