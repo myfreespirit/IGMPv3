@@ -11,7 +11,7 @@ using namespace vectoroperations;
 CLICK_DECLS
 
 
-IGMPRouterStates::IGMPRouterStates() : _qrv(2), _qic(125), _qri(100)
+IGMPRouterStates::IGMPRouterStates() : _qrv(2), _qic(125), _qri(100), _sqic(_qic/4), _sqc(_qrv), _lmqi(10), _lmqc(_qrv)
 {
 }
 
@@ -330,6 +330,69 @@ String IGMPRouterStates::getQRI(Element* e, void* thunk)
     return output;
 }
 
+String IGMPRouterStates::getGMI(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    //unsigned int gmiCode = me->_qrv * me->_qic + me->_qri;
+    double gmiTime = me->_qrv * me->codeToSeconds(me->_qic) + me->codeToSeconds(me->_qri);
+
+    String output = String(gmiTime) + "s\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getSQIC(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    double sqiTime = me->codeToSeconds(me->_sqic);
+
+    String output = String(sqiTime) + "s\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getSQC(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    String output = String(me->_sqc) + "\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getLMQI(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    double lmqiTime = me->codeToSeconds(me->_lmqi);
+
+    String output = String(lmqiTime) + "s\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getLMQC(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    String output = String(me->_lmqc) + "\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getLMQT(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    double lmqt = me->_lmqc * me->codeToSeconds(me->_lmqi);
+
+    String output = String(lmqt) + "s\n";
+
+    return output;
+}
+
 int IGMPRouterStates::setQRV(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
 {
     IGMPRouterStates* me = (IGMPRouterStates *) e;
@@ -398,16 +461,63 @@ int IGMPRouterStates::setQRI(const String &conf, Element* e, void* thunk, ErrorH
     return 0;
 }
 
+int IGMPRouterStates::setLMQI(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+	IGMPRouterStates* me = (IGMPRouterStates *) e;
+
+	if (cp_va_kparse(conf, me, errh,
+			"VAL", cpkM + cpkP, cpUnsigned, &me->_lmqi,
+			cpEnd) < 0) {
+		return -1;
+	}
+
+    return 0;
+}
+
+int IGMPRouterStates::setLMQC(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+    IGMPRouterStates* me = (IGMPRouterStates *) e;
+
+    unsigned int lmqc;
+
+    if (cp_va_kparse(conf, me, errh,
+                    "VAL", cpkM + cpkP, cpUnsigned, &lmqc,
+                    cpEnd) < 0) {
+            return -1;
+    }
+
+    if (lmqc == 0) {
+        return errh->error("LMQC must not be equal to 0.");
+    } else if (lmqc == 1) {
+        errh->warning("LMQC should not be equal to 1.");
+    } else if (lmqc > 7) {
+        lmqc = 2;  // use default, as LMQC is only 3 bits long
+        errh->warning("Max value for LMQC is 7. Setting it to default: 2.");
+    }
+
+    me->_lmqc = lmqc;
+
+    return 0;
+}
+
 void IGMPRouterStates::add_handlers()
 {
 	add_read_handler("records", &recordStates, (void *) 0);
     add_read_handler("qrv", &getQRV, (void *) 0);
     add_read_handler("qic", &getQIC, (void *) 0);
     add_read_handler("qri", &getQRI, (void *) 0);
+    add_read_handler("gmi", &getGMI, (void *) 0);
+    add_read_handler("sqic", &getSQIC, (void *) 0);
+    add_read_handler("sqc", &getSQC, (void *) 0);
+    add_read_handler("lmqi", &getLMQI, (void *) 0);
+    add_read_handler("lmqc", &getLMQC, (void *) 0);
+    add_read_handler("lmqt", &getLMQT, (void *) 0);
 
     add_write_handler("qrv", &setQRV, (void *) 0);
     add_write_handler("qic", &setQIC, (void *) 0);
     add_write_handler("qri", &setQRI, (void *) 0);
+    add_write_handler("lmqi", &setLMQI, (void *) 0);
+    add_write_handler("lmqc", &setLMQC, (void *) 0);
 }
 
 double IGMPRouterStates::codeToSeconds(unsigned int code)

@@ -91,13 +91,19 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 
 	Query* query = (Query *) (iph + 1);
 	query->type = IGMP_TYPE_QUERY;
-	query->max_resp_code = (group == IPAddress("0.0.0.0")) ? _states->_qri : 10;
 	query->checksum = htons(0);
 	query->group_address = group;
-	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_qrv);
-//	query->resv = 0;
-//	query->S = 0;
-//	query->QRV = _states->_qrv;
+    if (group == IPAddress()) {
+        // General Query
+        query->max_resp_code = _states->_qri;
+        // 4 bits Reserved, 1 bit Supressed, 3 bits QRV
+    	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_qrv);
+    } else {
+        // Group Specific Query
+        query->max_resp_code = _states->_lmqi;
+        // 4 bits Reserved, 1 bit Supressed, 3 bits QRV
+    	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_lmqc);
+   }
 	query->QQIC = _states->_qic;
     query->number_of_sources = htons(0);
 

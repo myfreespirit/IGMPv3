@@ -34,12 +34,21 @@ public:
     static String getQRV(Element* e, void* thunk);
     static String getQIC(Element* e, void* thunk);
     static String getQRI(Element* e, void* thunk);
+    static String getGMI(Element* e, void* thunk);
+    static String getSQIC(Element* e, void* thunk);
+    static String getSQC(Element* e, void* thunk);
+    static String getLMQI(Element* e, void* thunk);
+    static String getLMQC(Element* e, void* thunk);
+    static String getLMQT(Element* e, void* thunk);
+
 	/**
 	 * write handlers
 	 */
     static int setQRV(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
     static int setQIC(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
     static int setQRI(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
+    static int setLMQI(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
+    static int setLMQC(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
 
 	/**
 	 * data members
@@ -51,6 +60,10 @@ public:
     unsigned int _qrv; 
     unsigned int _qic;
     unsigned int _qri;
+    unsigned int _sqic;
+    unsigned int _sqc;
+    unsigned int _lmqi;
+    unsigned int _lmqc;
 
 private:
 	// collects all source addresses either from _forwardingSet or _blockingSet depening on given filter for a router record with given interface and groupAddress
