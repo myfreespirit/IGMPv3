@@ -26,8 +26,6 @@ int Reporter::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "CLIENT_STATES", cpkM, cpElementCast, "IGMPClientStates", &_states, cpEnd) < 0) return -1;
 
-    // _generalTimer.initialize(this);
-
 	return 0;
 }
 
@@ -193,9 +191,9 @@ void Reporter::handleExpiry(Timer*, void* data)
 void Reporter::setQRVCounter(int interface, Packet* p)
 {
     click_ip* iph = (click_ip*) p->data();
-    Query* q = (Query* )(iph + 1);
+    Query* q = (Query*)(iph + 1);
 
-	int counter = q->resvSQRV & 7;
+	int counter = q->resvSQRV & 7;  // QRV is filled in 3 LSB
 
 	// resize on first general query on particular interface
 	if (_generalTimerStates.size() <= interface) {
@@ -217,9 +215,10 @@ void Reporter::setQRVCounter(int interface, Packet* p)
 		_generalTimers.at(interface)->initialize(this);
 	}
 
-	//The schedule value is a random number between 0 and maxRespTime in millisecond 
-	srand(time(NULL));	
-	int value = rand() % _generalMaxRespTime+1; 
+    // Schedule timer on new General Query reception
+	// The schedule value is a random number between 0 and maxRespTime inclusive in seconds
+	srand(time(NULL) + rand());
+	int value = rand() % (_generalMaxRespTime + 1);
     _generalTimers.at(interface)->schedule_after_sec(value);
 }
 
@@ -230,8 +229,9 @@ void Reporter::expire(TimerState* timerState)
 	int interface = timerState->interface;
 
     if (counter > 0) {
-		srand(time(NULL));	
-		int value = rand() % _generalMaxRespTime+1;
+        // Schedule timer for next report transmission
+		srand(time(NULL) + rand());
+		int value = rand() % (_generalMaxRespTime + 1);
    		_generalTimers.at(interface)->schedule_after_sec(value);
     } else {
 		// free up memory after last report on general query
@@ -248,15 +248,16 @@ void Reporter::setMaxRespTime(Packet* p)
 {
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1);
-	if(query->max_resp_code < 128){
+
+    if (query->max_resp_code < 128) {
 		this->_generalMaxRespTime = query->max_resp_code;
-	}
-	else{
-		uint8_t exp = (query->max_resp_code & 112) >> 4 ;
+	} else {
+		uint8_t exp = (query->max_resp_code & 112) >> 4;
 		uint8_t mant = (query->max_resp_code & 15);
 		this->_generalMaxRespTime = (mant | 0x10) << (exp + 3);
 	}
-	this->_generalMaxRespTime = this->_generalMaxRespTime/10;
+
+    this->_generalMaxRespTime = this->_generalMaxRespTime / 10;
 }
 
 void Reporter::push(int interface, Packet *p)
