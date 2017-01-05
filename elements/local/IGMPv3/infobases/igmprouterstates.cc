@@ -11,7 +11,7 @@ using namespace vectoroperations;
 CLICK_DECLS
 
 
-IGMPRouterStates::IGMPRouterStates() : _qrv(2)
+IGMPRouterStates::IGMPRouterStates() : _qrv(2), _qic(125), _qri(100)
 {
 }
 
@@ -312,24 +312,42 @@ String IGMPRouterStates::getQRV(Element* e, void* thunk)
     return output;
 }
 
+String IGMPRouterStates::getQIC(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    String output = String(me->_qic) + " (= " + String(me->codeToSeconds(me->_qic)) + "s)\n";
+
+    return output;
+}
+
+String IGMPRouterStates::getQRI(Element* e, void* thunk)
+{
+    IGMPRouterStates* me = (IGMPRouterStates*) e;
+
+    String output = String(me->_qri) + " (= " + String(me->codeToSeconds(me->_qri)) + "s)\n";
+
+    return output;
+}
+
 int IGMPRouterStates::setQRV(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
 {
-	IGMPRouterStates* me = (IGMPRouterStates *) e;
+    IGMPRouterStates* me = (IGMPRouterStates *) e;
 
     unsigned int qrv;
 
-	if (cp_va_kparse(conf, me, errh,
-			"VAL", cpkM + cpkP, cpUnsigned, &qrv,
-			cpEnd) < 0) {
-		return -1;
-	}
+    if (cp_va_kparse(conf, me, errh,
+                    "VAL", cpkM + cpkP, cpUnsigned, &qrv,
+                    cpEnd) < 0) {
+            return -1;
+    }
 
     if (qrv == 0) {
         return errh->error("QRV must not be equal to 0.");
     } else if (qrv == 1) {
         errh->warning("QRV should not be equal to 1.");
     } else if (qrv > 7) {
-        qrv = 2;  // use default, as qrv is only 3 bits long
+        qrv = 2;  // use default, as QRV is only 3 bits long
         errh->warning("Max value for QRV is 7. Setting it to default: 2.");
     }
 
@@ -338,11 +356,69 @@ int IGMPRouterStates::setQRV(const String &conf, Element* e, void* thunk, ErrorH
     return 0;
 }
 
+int IGMPRouterStates::setQIC(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+	IGMPRouterStates* me = (IGMPRouterStates *) e;
+
+    unsigned int qic;
+
+	if (cp_va_kparse(conf, me, errh,
+			"VAL", cpkM + cpkP, cpUnsigned, &qic,
+			cpEnd) < 0) {
+		return -1;
+	}
+
+    if (qic <= me->_qri) {
+        return errh->error("QIC must be greater than QRI.");
+    }
+
+    me->_qic = qic;
+
+    return 0;
+}
+
+int IGMPRouterStates::setQRI(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+	IGMPRouterStates* me = (IGMPRouterStates *) e;
+
+    unsigned int qri;
+
+	if (cp_va_kparse(conf, me, errh,
+			"VAL", cpkM + cpkP, cpUnsigned, &qri,
+			cpEnd) < 0) {
+		return -1;
+	}
+
+    if (qri >= me->_qic) {
+        return errh->error("QRI must be less than QIC.");
+    }
+
+    me->_qri = qri;
+
+    return 0;
+}
+
 void IGMPRouterStates::add_handlers()
 {
 	add_read_handler("records", &recordStates, (void *) 0);
     add_read_handler("qrv", &getQRV, (void *) 0);
-    add_write_handler("qrv", &setQRV, (void *) 0); 
+    add_read_handler("qic", &getQIC, (void *) 0);
+    add_read_handler("qri", &getQRI, (void *) 0);
+
+    add_write_handler("qrv", &setQRV, (void *) 0);
+    add_write_handler("qic", &setQIC, (void *) 0);
+    add_write_handler("qri", &setQRI, (void *) 0);
+}
+
+double IGMPRouterStates::codeToSeconds(unsigned int code)
+{
+    if (code < 128) {
+        return code / 10.0;
+    }
+
+    uint8_t exp = (code & 112) >> 4;
+    uint8_t mant = (code & 15);
+    return ((mant | 0x10) << (exp + 3)) / 10.0;
 }
 
 

@@ -89,17 +89,16 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 	iph->ip_dst = _states->_destination;
 	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
 
-	// TODO get specific values from infobase element (QRV, QQIC, etc)
 	Query* query = (Query *) (iph + 1);
 	query->type = IGMP_TYPE_QUERY;
-	query->max_resp_code = (group == IPAddress("0.0.0.0")) ? 100 : 10;
+	query->max_resp_code = (group == IPAddress("0.0.0.0")) ? _states->_qri : 10;
 	query->checksum = htons(0);
 	query->group_address = group;
 	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_qrv);
 //	query->resv = 0;
 //	query->S = 0;
 //	query->QRV = _states->_qrv;
-	query->QQIC = 125;
+	query->QQIC = _states->_qic;
     query->number_of_sources = htons(0);
 
 	query->checksum = click_in_cksum((unsigned char*) query, messageSize);
