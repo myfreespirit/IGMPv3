@@ -35,7 +35,6 @@ elementclass Router {
 
 	// * multicast packets in the range of 224.0.0.0 to 239.255.255.255
 	// but that aren't encapped with IP IGMP protocol
-	// those are processed by the querier::Querier
 
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (3);
@@ -84,6 +83,7 @@ elementclass Router {
 
 	ip_igmp_class1[0]
 		-> Strip(14)
+		-> CheckIGMPChecksum(TYPE 0x22, OFFSET 20)  // skip IP header to verify checksum of IGMP Report
 		-> [1]querier;
 	
 	// Input and output paths for interface 2
@@ -107,6 +107,7 @@ elementclass Router {
 
 	ip_igmp_class2[0]
 		-> Strip(14)
+		-> CheckIGMPChecksum(TYPE 0x22, OFFSET 20)  // skip IP header to verify checksum of IGMP Report
 		-> [2]querier;
 	
 	// Local delivery

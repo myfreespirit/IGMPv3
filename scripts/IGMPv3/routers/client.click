@@ -21,7 +21,6 @@ elementclass Client {
 
 	// * multicast packets in the range of 224.0.0.0 to 239.255.255.255
 	// but that aren't encapped with IP IGMP protocol
-	// those are processed by the reporter::Reporter
 
 	rt[2]
 		-> MulticastReceiver(CLIENT_STATES igmp_client_states)
@@ -64,6 +63,7 @@ elementclass Client {
 
 	ip_igmp_class[0]
 		-> Strip(14)
+		-> CheckIGMPChecksum(TYPE 0x11, OFFSET 20)  // skip IP header to verify checksum of IGMP Query
 		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
         -> IPEncap(PROTO 2, SRC $address, DST all_routers_multicast_address, TTL 1, TOS 0xc0)
 		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
