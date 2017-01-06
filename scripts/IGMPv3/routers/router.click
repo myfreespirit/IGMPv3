@@ -207,14 +207,17 @@ elementclass Router {
 
 	split[0]
 		-> [0]m_cast_sender[0]
+		-> DecIPTTL
 		-> server_arpq;
 
 	split[1]
 		-> [1]m_cast_sender[1]
+		-> DecIPTTL
 		-> client1_arpq;
 
 	split[2]
 		-> [2]m_cast_sender[2]
+		-> DecIPTTL
 		-> client2_arpq;
 }
 
