@@ -30,6 +30,14 @@ CLIENTS
 	read client21/igmp_client_states.sockets
 	read client21/igmp_client_states.interfaces
 
+* Infobase Element values used by Reporter
+    read client21/igmp_client_states.rrv
+    read client21/igmp_client_states.uri
+
+    write client21/igmp_client_states.rrv 2
+    write client21/igmp_client_states.uri 1
+
+
 ROUTERS
 =======
 * General Query (sends out on all attached interfaces)
@@ -43,7 +51,20 @@ ROUTERS
 
 * Infobase Element values used by Querier
     read router/igmp_router_states.qrv
-    write router/igmp_router_states.qrv 3
+    read router/igmp_router_states.qic
+    read router/igmp_router_states.qri
+    read router/igmp_router_states.gmi
+    read router/igmp_router_states.sqic
+    read router/igmp_router_states.sqc
+    read router/igmp_router_states.lmqi
+    read router/igmp_router_states.lmqc
+    read router/igmp_router_states.lmqt
+
+    write router/igmp_router_states.qrv 2
+    write router/igmp_router_states.qic 125
+    write router/igmp_router_states.qri 100
+    write router/igmp_router_states.lmqi 10
+    write router/igmp_router_states.lmqc 2
 
 
 # Authors

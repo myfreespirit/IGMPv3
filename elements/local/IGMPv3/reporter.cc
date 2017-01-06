@@ -39,12 +39,11 @@ void Reporter::reportGroupState(IPAddress group)
 	if (group == IPAddress("224.0.0.1"))
 		return;
     
-	// assume group query arrived at interface 0
     int groupIndex;
 	int totalSources;
 	FilterMode filter;
 	set<String> sources;
-	int interface = 0;
+	int interface = 0;  // assume group query arrived at interface 0
 
 	for (groupIndex = 0; groupIndex < _states->_interfaceStates.at(interface).size(); groupIndex++) {
 		if (_states->_interfaceStates.at(interface).at(groupIndex)._groupAddress == group) {
@@ -75,7 +74,7 @@ void Reporter::reportGroupState(IPAddress group)
     Report* report = (Report *) q->data();
     report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
-    report->number_of_group_records = htons(1);    
+    report->number_of_group_records = htons(1); 
 
 	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
 	groupRecord->type = filter; 
@@ -105,8 +104,7 @@ void Reporter::reportCurrentState()
         return;
     }
     
-	// assume general query arrived at interface 0
-	int interface = 0;
+    int interface = 0;  // assume general query arrived at interface 0
     int numberOfGroups = _states->_interfaceStates.at(interface).size() - 1;  // subtract the all hosts membership group
     click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
     if (numberOfGroups == 0)
@@ -349,14 +347,14 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
     groupRecord->aux_data_len = 0;
     groupRecord->multicast_address = groupAddress;
 
-	// find source list of matching interface, group
+	// find source list of matching (interface, group) and fill in grouprecord's type
 	set<String> srcs;
 	Vector<InterfaceState> iStates = _states->_interfaceStates.at(interface);
 	bool isStateRemoved = true;
 	for (Vector<InterfaceState>::const_iterator it = iStates.begin(); it != iStates.end(); it++) {
 		if (it->_groupAddress == groupAddress) {
 			srcs = it->_sources;
-			groupRecord->type = it->_filter + 2;
+			groupRecord->type = it->_filter + 2;  // filter is either MODE_IS_INCLUDE or MODE_IS_EXCLUDE, but we know there was a change
 			isStateRemoved = false;
 			break;
 		}
@@ -366,6 +364,7 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
 	}
     groupRecord->number_of_sources = htons(srcs.size());
 
+    // Fill in source list
 	Addresses* addresses = (Addresses*) (groupRecord + 1);
 	set<String>::iterator it = srcs.begin();
 	for (int i = 0; i < srcs.size(); i++) {

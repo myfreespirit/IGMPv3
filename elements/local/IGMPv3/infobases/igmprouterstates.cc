@@ -316,7 +316,7 @@ String IGMPRouterStates::getQIC(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    String output = String(me->codeToSeconds(me->_qic)) + " s\n";
+    String output = String(me->_qic) + " (= " + String(me->codeToSeconds(me->_qic)) + "s)\n";
 
     return output;
 }
@@ -346,7 +346,7 @@ String IGMPRouterStates::getSQIC(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    String output = String(me->codeToSeconds(me->_sqic)) + "s\n";
+    String output = String(me->_sqic) + " (= " + String(me->codeToSeconds(me->_sqic)) + "s)\n";
 
     return output;
 }
@@ -366,7 +366,7 @@ String IGMPRouterStates::getLMQI(Element* e, void* thunk)
 
     double lmqiTime = me->codeToSeconds(me->_lmqi)/10.0;
 
-    String output = String(lmqiTime) + "s\n";
+    String output = String(me->_lmqi) + " (= " + String(lmqiTime) + "s)\n";
 
     return output;
 }

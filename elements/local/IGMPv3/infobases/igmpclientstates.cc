@@ -162,8 +162,10 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 
 	// remove old entry on leave
 	if (filter == MODE_IS_INCLUDE && sources.size() == 0) {
-		if (interface >= _interfaceStates.size())
+		if (interface >= _interfaceStates.size()) {
+            // leaving a group on an interface before joining it is useless
 			return;
+        }
 
 		Vector<InterfaceState> vInterfaces = _interfaceStates.at(interface);
 		Vector<InterfaceState>::iterator it;
@@ -176,6 +178,7 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 		}
 		// exception, we might need to rollback to previous interface state (backtracked above)
 		if (state._filter != MODE_IS_INCLUDE || includeSources.size() > 0) {
+            click_chatter("TODO: IGMPClientStates::saveInterfaceState which use case is this backtracking?");
 			_interfaceStates.at(interface).push_back(state);
 		}
 		return;

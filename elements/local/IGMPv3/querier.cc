@@ -80,7 +80,7 @@ void Querier::push(int interface, Packet *p)
     }
 }
 
-void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0.0.0"))
+void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress())
 {
 	int headroom = sizeof(click_ether) + sizeof(click_ip);
 	int messageSize = sizeof(struct Query);
@@ -110,7 +110,7 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
     	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_lmqc);
     }
 	query->QQIC = (_generalTimerState->counter > 1) ? _states->_sqic : _states->_qic;
-    query->number_of_sources = htons(0);
+    query->number_of_sources = htons(0);  // We weren't supposed to support Group-And-Source specific Queries
 
 	query->checksum = click_in_cksum((unsigned char*) query, messageSize);
 

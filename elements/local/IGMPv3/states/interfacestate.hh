@@ -6,18 +6,30 @@
 #include <set>
 #include "../utils/filtermode.hh"
 
-// RFC 3376 page 5
+/* RFC 3376, page 5
+ * InterfaceState records the desired multicast reception state for a particular interface.
+ * That state consists of a multicast-address, a filter-mode and a source list.
+ * Is derived from the per-socket state.
+ */
 struct InterfaceState {
-	InterfaceState() : _groupAddress(IPAddress("225.1.1.1")), _filter(MODE_IS_EXCLUDE)
+    /*
+     * Default Constructor
+     */
+	InterfaceState() : _groupAddress(IPAddress("225.0.0.1")), _filter(MODE_IS_EXCLUDE)
 	{
 	}
 
-	InterfaceState(IPAddress groupAddress, FilterMode filter, std::set<String> sources) {
-		_groupAddress = groupAddress;
-		_filter = filter;
-		_sources = sources;
+    /* 
+     * Parameterized Constructor
+     */
+	InterfaceState(IPAddress groupAddress, FilterMode filter, std::set<String> sources) :
+        _groupAddress(groupAddress), _filter(filter), _sources(sources)
+    {
 	}
 
+    /*
+     *  Public data members
+     */
 	IPAddress _groupAddress;
 	FilterMode _filter;
 	std::set<String> _sources;
