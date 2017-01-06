@@ -25,6 +25,7 @@ public:
 	QUERY_MODE updateFilterChange(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources);
 
 	bool isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source);
+    double codeToSeconds(unsigned int code);
 
 	void add_handlers();
 	/**
@@ -70,7 +71,6 @@ private:
 	Vector<IPAddress> getSourceAddresses(unsigned int interface, IPAddress groupAddress, FilterMode filter);
 	Vector<SourceRecord> transformToSourceRecords(Vector<IPAddress> a);
 	void removeSourceRecords(Vector<SourceRecord>& records, Vector<IPAddress> x);
-    double codeToSeconds(unsigned int code);
 };
 
 

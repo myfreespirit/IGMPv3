@@ -5,6 +5,8 @@
 
 CLICK_DECLS
 
+struct GeneralTimerState;
+
 class Querier : public Element {
 	public:
 		Querier();
@@ -23,6 +25,18 @@ class Querier : public Element {
 		void add_handlers();
 
 		IGMPRouterStates* _states;
+
+    private:
+        void expireGeneral(GeneralTimerState* timerState);
+        static void handleGeneralExpiry(Timer*, void* data); 
+
+        GeneralTimerState* _generalTimerState;
+        Timer* _generalTimer;
+};
+
+struct GeneralTimerState {
+    Querier* me;
+    int counter;  // all startup queries are sent out when counter reaches 1 
 };
 
 CLICK_ENDDECLS

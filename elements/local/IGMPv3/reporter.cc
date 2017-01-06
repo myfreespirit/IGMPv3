@@ -67,6 +67,7 @@ void Reporter::reportGroupState(IPAddress group)
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
+        click_chatter("ERROR: Reporter was unable to create a new WritablePacket to send reply to Group-Specific-Query.");
 		return;
 	}
 
@@ -135,6 +136,7 @@ void Reporter::reportCurrentState()
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
+        click_chatter("ERROR: Reporter was unable to create a new WritablePacket to send reply to General Query.");
 		return;
 	}
 
@@ -244,7 +246,6 @@ void Reporter::expire(TimerState* timerState)
 	}
 }
 
-
 void Reporter::setMaxRespTime(Packet* p)
 {
 	click_ip* iph = (click_ip*) p->data();
@@ -297,7 +298,7 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
-		// TODO generate error
+        click_chatter("ERROR: Reporter was unable to create a new WritablePacket to send a Filter Mode Change Report.");
 		return;
 	}
 

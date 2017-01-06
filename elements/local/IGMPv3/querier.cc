@@ -6,10 +6,11 @@
 
 #include <clicknet/ether.h>
 #include <clicknet/ip.h>
+#include <click/timer.hh>
 
 CLICK_DECLS
 
-Querier::Querier()
+Querier::Querier() 
 {
 }
 
@@ -20,6 +21,16 @@ Querier::~Querier()
 int Querier::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "ROUTER_STATES", cpkM, cpElementCast, "IGMPRouterStates", &_states, cpEnd) < 0) return -1;
+
+    // Initialize timerstates
+    _generalTimerState = new GeneralTimerState();
+    _generalTimerState->me = this;
+    _generalTimerState->counter = _states->_sqc;
+    // Initialize timers
+    _generalTimer = new Timer(&handleGeneralExpiry, _generalTimerState);
+    _generalTimer->initialize(this);
+    _generalTimer->schedule_after_sec(_states->_sqic);
+
 	return 0;
 }
 
@@ -103,14 +114,16 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
         query->max_resp_code = _states->_lmqi;
         // 4 bits Reserved, 1 bit Supressed, 3 bits QRV
     	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_lmqc);
-   }
-	query->QQIC = _states->_qic;
+    }
+	query->QQIC = (_generalTimerState->counter > 1) ? _states->_sqic : _states->_qic;
     query->number_of_sources = htons(0);
 
 	query->checksum = click_in_cksum((unsigned char*) query, messageSize);
 
 	q->set_dst_ip_anno(_states->_destination);
+
 	click_chatter("Router sent a query on interface %u for group %s", interface, group.unparse().c_str());
+
 	output(interface).push(q);
 }
 
@@ -146,6 +159,35 @@ void Querier::add_handlers() {
 	add_write_handler("general_query", &generalQueryHandler, (void *) 0);
 	add_write_handler("group_query", &groupQueryHandler, (void *) 0);
 }
+
+void Querier::handleGeneralExpiry(Timer*, void* data)
+{
+	GeneralTimerState* timerState = (GeneralTimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expireGeneral(timerState);
+}
+
+void Querier::expireGeneral(GeneralTimerState* timerState)
+{
+    // Send out General Queries on each interface
+	sendQuery(0);
+	sendQuery(1);
+	sendQuery(2);
+
+    int sec;
+    // Schedule timer for next general query transmission
+    if (timerState->counter > 1) {
+        // Startup procedure, all startup queries are sent out when counter == 1
+		sec = _states->_sqic;
+        timerState->counter--;
+    } else {
+        // Normal procedure
+        sec = _states->_qic;
+	}
+
+   	_generalTimer->schedule_after_sec(sec);
+}
+
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(Querier)
