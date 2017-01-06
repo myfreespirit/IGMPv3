@@ -59,10 +59,9 @@ void Reporter::reportGroupState(IPAddress group)
 	if (groupIndex == _states->_interfaceStates.at(interface).size())
 		return;
 
-    int headroom = sizeof(click_ether);
-	int headerSize = sizeof(click_ip);
-	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(struct Addresses) * totalSources;
-	int packetSize = headerSize + messageSize;
+    int headroom = sizeof(click_ether) + sizeof(click_ip);
+    int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(struct Addresses) * totalSources;
+	int packetSize = messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
@@ -73,17 +72,7 @@ void Reporter::reportGroupState(IPAddress group)
 
 	memset(q->data(), '\0', packetSize);
 
-	click_ip* iph = (click_ip*) q->data();
-	iph->ip_v = 4;
-	iph->ip_hl = sizeof(click_ip) >> 2;
-	iph->ip_len = htons(q->length());
-	iph->ip_p = IP_PROTO_IGMP;
-	iph->ip_ttl = 1;
-	iph->ip_src = _states->_source;
-	iph->ip_dst = _states->_destination;
-	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
-	
-    Report* report = (Report *) (iph + 1);
+    Report* report = (Report *) q->data();
     report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(1);    
@@ -128,10 +117,9 @@ void Reporter::reportCurrentState()
 	    totalSources += this->_states->_interfaceStates.at(interface).at(i)._sources.size();
 	}
 
-    int headroom = sizeof(click_ether);
-	int headerSize = sizeof(click_ip);
+    int headroom = sizeof(click_ether) + sizeof(click_ip);
 	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) * numberOfGroups + sizeof(struct Addresses) * totalSources;
-	int packetSize = headerSize + messageSize;
+	int packetSize = messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
@@ -142,17 +130,7 @@ void Reporter::reportCurrentState()
 
 	memset(q->data(), '\0', packetSize);
 
-	click_ip* iph = (click_ip*) q->data();
-	iph->ip_v = 4;
-	iph->ip_hl = sizeof(click_ip) >> 2;
-	iph->ip_len = htons(q->length());
-	iph->ip_p = IP_PROTO_IGMP;
-	iph->ip_ttl = 1;
-	iph->ip_src = _states->_source;
-	iph->ip_dst = _states->_destination;
-	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
-	
-    Report* report = (Report *) (iph + 1);
+    Report* report = (Report *) q->data();
     report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(numberOfGroups);  // TODO check for fragmentation needs
@@ -290,10 +268,9 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
 		}
 	}
 
-	int headroom = sizeof(click_ether);
-	int headerSize = sizeof(click_ip);
+	int headroom = sizeof(click_ether) + sizeof(click_ip);
 	int messageSize = sizeof(struct Report) + sizeof(struct GroupRecord) + sizeof(struct Addresses) * totalSources;
-	int packetSize = headerSize + messageSize;
+	int packetSize = messageSize;
 
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
@@ -304,17 +281,7 @@ void Reporter::reportFilterModeChange(unsigned int port, unsigned int interface,
 
 	memset(q->data(), '\0', packetSize);
 
-	click_ip* iph = (click_ip*) q->data();
-	iph->ip_v = 4;
-	iph->ip_hl = sizeof(click_ip) >> 2;
-	iph->ip_len = htons(q->length());
-	iph->ip_p = IP_PROTO_IGMP;
-	iph->ip_ttl = 1;
-	iph->ip_src = _states->_source;
-	iph->ip_dst = _states->_destination;
-	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
-
-    Report* report = (Report *) (iph + 1);
+    Report* report = (Report *) q->data();
     report->type = IGMP_TYPE_REPORT;
     report->checksum = htons(0);
     report->number_of_group_records = htons(1);  // TODO check for fragmentation needs

@@ -77,10 +77,9 @@ void Querier::push(int interface, Packet *p)
 
 void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0.0.0"))
 {
-	int headroom = sizeof(click_ether);
-	int headerSize = sizeof(click_ip);
+	int headroom = sizeof(click_ether) + sizeof(click_ip);
 	int messageSize = sizeof(struct Query);
-	int packetSize = headerSize + messageSize;
+	int packetSize = messageSize;
 	WritablePacket* q = Packet::make(headroom, 0, packetSize, 0);
 
 	if (!q) {
@@ -90,17 +89,7 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0
 
 	memset(q->data(), '\0', packetSize);
 
-	click_ip* iph = (click_ip*) q->data();
-	iph->ip_v = 4;
-	iph->ip_hl = sizeof(click_ip) >> 2;
-	iph->ip_len = htons(q->length());
-	iph->ip_p = IP_PROTO_IGMP;
-	iph->ip_ttl = 1;
-	iph->ip_src = _states->_source;
-	iph->ip_dst = _states->_destination;
-	iph->ip_sum = click_in_cksum((unsigned char*) iph, sizeof(click_ip));
-
-	Query* query = (Query *) (iph + 1);
+	Query* query = (Query *) q->data();
 	query->type = IGMP_TYPE_QUERY;
 	query->checksum = htons(0);
 	query->group_address = group;

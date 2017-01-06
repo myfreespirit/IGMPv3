@@ -65,6 +65,7 @@ elementclass Client {
 	ip_igmp_class[0]
 		-> Strip(14)
 		-> reporter::Reporter(CLIENT_STATES igmp_client_states)
+        -> IPEncap(PROTO 2, SRC $address, DST all_routers_multicast_address, TTL 1, TOS 0xc0)
 		-> EtherEncap(0x0800, $address:eth, $gateway:eth)
 		-> output;
 }

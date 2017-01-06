@@ -192,13 +192,16 @@ elementclass Router {
 		-> rt;
 
 	querier[0]
+        -> IPEncap(PROTO 2, SRC $server_address, DST all_hosts_multicast_address, TTL 1, TOS 0xc0)
 		-> server_arpq;
 
 	querier[1]
+        -> IPEncap(PROTO 2, SRC $client1_address, DST all_hosts_multicast_address, TTL 1, TOS 0xc0)
 		-> client1_arpq;
 
 	querier[2]
-		-> client2_arpq;
+        -> IPEncap(PROTO 2, SRC $client2_address, DST all_hosts_multicast_address, TTL 1, TOS 0xc0)
+        -> client2_arpq;
 
 	rt[4]
 		-> split::Tee(3);
