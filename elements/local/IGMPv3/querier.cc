@@ -55,9 +55,10 @@ void Querier::push(int interface, Packet *p)
 		QUERY_MODE queryMode = _states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
 
 		if (queryMode == GROUP_QUERY) {
+            // When a client leaves a group, we need to send a Group-Specific Query for that multicast address on received interface.
 			sendQuery(interface, groupRecord->multicast_address);
 		}
-	} else {
+	} else if (groupType == MODE_IS_INCLUDE || groupType == MODE_IS_EXCLUDE) {
 		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
 
 		int totalGroups = ntohs(report->number_of_group_records);
@@ -72,7 +73,11 @@ void Querier::push(int interface, Packet *p)
 			_states->updateCurrentState(interface, groupRecord->multicast_address, groupType, vSources);
 			groupRecord = (GroupRecord*) (addresses + totalSources);
 		}
-	}
+    } else if (groupType == ALLOW_NEW_SOURCES || groupType == BLOCK_OLD_SOURCES) {
+        // wasn't required to implement ([RFC 3376] page 17)
+    } else {
+        // Unrecognized Record Type values MUST be silently ignored.
+    }
 }
 
 void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress("0.0.0.0"))
