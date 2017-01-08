@@ -46,6 +46,8 @@ private:
     void expireGeneral(TimerState* timerState);
     void expireFilter(FilterTimerState* timerState);
 
+    void scheduleGeneralTimer(int interface, Packet* p);
+
 	// DATA MEMBERS
 	IGMPClientStates* _states;  // infobase
 

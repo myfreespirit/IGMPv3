@@ -1,13 +1,13 @@
 #include <click/config.h>
 #include <click/confparse.hh>
 #include <click/error.hh>
+#include <click/timestamp.hh>
+#include <clicknet/ether.h>
+#include <clicknet/ip.h>
 
 #include "reporter.hh"
 #include "messages.hh"
 #include "utils/filtermode.hh"
-
-#include <clicknet/ether.h>
-#include <clicknet/ip.h>
 
 #include <stdlib.h>
 #include <time.h>
@@ -200,14 +200,8 @@ void Reporter::setQRVCounter(int interface, Packet* p)
 		_generalTimers.at(interface)->initialize(this);
 	}
     // it's possible for a General Query to reset the counter if the client wasn't able to send out all QRV reports by the time of a new request
-    _generalTimerStates.at(interface)->counter = counter;  
+    _generalTimerStates.at(interface)->counter = counter;
     _generalTimerStates.at(interface)->interface = interface;
-
-    // Schedule timer on new General Query reception
-	// The schedule value is a random number between 0 and maxRespTime inclusive in seconds
-	srand(time(NULL) + rand());
-	int value = rand() % (_generalMaxRespTime + 1);
-    _generalTimers.at(interface)->schedule_after_sec(value);
 }
 
 void Reporter::expireGeneral(TimerState* timerState)
@@ -273,16 +267,48 @@ void Reporter::setMaxRespTime(Packet* p)
     this->_generalMaxRespTime = this->_generalMaxRespTime / 10;
 }
 
+void Reporter::scheduleGeneralTimer(int interface, Packet* p)
+{
+    if ((_states->_interfaceStates.size() <= interface) || (_states->_interfaceStates.at(interface).size() == 1)) {
+        // the system has no state to report to General Query (we do not report all-hosts multicast group address)
+        return;
+    }
+
+    // pick a random delay within [0, Max Resp Time]
+    srand(time(NULL) + rand());
+	int delay = rand() % (_generalMaxRespTime + 1);
+
+    // check for pending response
+    if (_generalTimers.size() > interface && _generalTimers.at(interface) != NULL) {
+        Timestamp scheduledOld = _generalTimers.at(interface)->expiry();
+        Timestamp scheduledNew = Timestamp(delay);
+        if (scheduledOld < scheduledNew) {
+            // pending response to General Query is scheduled sooner than new delay
+            click_chatter("%s's previous response to General Query is scheduled sooner than new delay, leaving as it is.\n", _states->_source.unparse().c_str());
+            return;
+        }
+    } else {
+        click_chatter("%s is scheduling new response to General Query.\n", _states->_source.unparse().c_str());
+        // there's no pending response for previous General Query
+        setQRVCounter(interface, p);
+
+        // Schedule timer on General Query reception
+        _generalTimers.at(interface)->schedule_after_sec(delay);
+
+        return;
+    }
+}
+
 void Reporter::push(int interface, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1); 
 
+    setMaxRespTime(p);
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress("0.0.0.0")) {
 			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
-			setMaxRespTime(p);
-            setQRVCounter(interface, p);
+            scheduleGeneralTimer(interface, p);
         } else {
 			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
 			reportGroupState(query->group_address);
