@@ -35,6 +35,65 @@ int Querier::configure(Vector<String> &conf, ErrorHandler *errh)
 	return 0;
 }
 
+void Querier::handleGroupExpiry(Timer*, void* data)
+{
+	GroupSpecificTimerState* timerState = (GroupSpecificTimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expireGroup(timerState);
+}
+
+void Querier::expireGroup(GroupSpecificTimerState* timerState)
+{
+    int interface = timerState->interface;
+    IPAddress group = timerState->group;
+    sendQuery(interface, group);
+
+    int counter = --timerState->counter;
+    if (counter > 0) {
+        // Schedule timer for next transmission
+		srand(time(NULL) + rand());
+		int value = rand() % (timerState->delay + 1);
+        _groupTimers.at(interface)[group]->schedule_after_sec(value);
+    } else {
+        // free up memory after last transmission
+        _groupTimers.at(interface).erase(group);
+        _groupTimerStates.at(interface).erase(group);
+    }
+}
+
+void Querier::scheduleGroupTimer(int interface, IPAddress group)
+{
+    // Robustness: retransmit up to LMQC times with intervals of LMQI, first one is sent out immediately
+    sendQuery(interface, group);
+   
+    if (_groupTimerStates.size() <= interface) {
+        _groupTimerStates.resize(interface + 1);
+    }
+    GroupSpecificTimerState* groupTimerState = _groupTimerStates.at(interface)[group];
+    if (groupTimerState == NULL) {
+        groupTimerState = new GroupSpecificTimerState();
+        groupTimerState->me = this;
+    }
+    groupTimerState->counter = _states->_lmqc - 1;
+    groupTimerState->delay = _states->_lmqi / 10.0;
+    groupTimerState->interface = interface;
+    groupTimerState->group = group;
+
+    if (_groupTimers.size() <= interface) {
+        _groupTimers.resize(interface + 1);
+    }
+    Timer* groupTimer = _groupTimers.at(interface)[group];
+    if (groupTimer == NULL) {
+        groupTimer = new Timer(&handleGroupExpiry, groupTimerState);
+        groupTimer->initialize(this);
+    }
+
+    // Schedule timer for next transmission
+    srand(time(NULL) + rand());
+    int value = rand() % (groupTimerState->delay + 1);
+    groupTimer->schedule_after_sec(value);
+}
+
 void Querier::push(int interface, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
@@ -56,11 +115,9 @@ void Querier::push(int interface, Packet *p)
 		QUERY_MODE queryMode = _states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
 
 		if (queryMode == GROUP_QUERY) {
-            // TODO: TIMERs
             // When a client leaves a group, we need to send a Group-Specific Query for that multicast address on received interface.
-            // Robustness: retransmit up to LMQC times with intervals of LMQI, first one is sent out immediately
-			sendQuery(interface, groupRecord->multicast_address);
-		}
+            scheduleGroupTimer(interface, groupRecord->multicast_address);
+        }
 	} else if (groupType == MODE_IS_INCLUDE || groupType == MODE_IS_EXCLUDE) {
 		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
 

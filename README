@@ -19,18 +19,18 @@ CLIENTS
 =======
 * Joins (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, empty SRC list)
 	write client21/reporter.join_group
-	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER INCLUDE, SRC 192.168.1.1, SRC 1.1.1.2
-	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1
+	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER INCLUDE, SRC 192.168.1.1
+	write client21/reporter.join_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1, FILTER EXCLUDE, SRC 192.168.1.1, SRC 192.168.1.2
 
 * Leaves (by default PORT 1234, INTERFACE 0, GROUP 225.0.0.1)
 	write client21/reporter.leave_group
 	write client21/reporter.leave_group PORT 1234, INTERFACE 0, GROUP 225.0.0.1
 
-* Infobase Element states (per interface [currently only interface 0] and per socket [i.e. client's IP address:port])
+* Infobase Element states (per interface and per socket [i.e. client's IP address:port])
 	read client21/igmp_client_states.sockets
 	read client21/igmp_client_states.interfaces
 
-* Infobase Element values used by Reporter
+* Infobase Element values used by Reporter (Robustness Variable and Unsolicited Report Interval)
     read client21/igmp_client_states.rrv
     read client21/igmp_client_states.uri
 
@@ -49,7 +49,7 @@ ROUTERS
 * Router records per interface and per multicast group
 	read router/igmp_router_states.records
 
-* Infobase Element values used by Querier
+* Infobase Element values used by Querier [RFC3376] p.40-43
     read router/igmp_router_states.qrv
     read router/igmp_router_states.qic
     read router/igmp_router_states.qri
