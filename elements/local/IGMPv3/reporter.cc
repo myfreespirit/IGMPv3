@@ -107,8 +107,10 @@ void Reporter::reportCurrentState()
     int interface = 0;  // assume general query arrived at interface 0
     int numberOfGroups = _states->_interfaceStates.at(interface).size() - 1;  // subtract the all hosts membership group
     click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
-    if (numberOfGroups == 0)
+    if (numberOfGroups == 0) {
+        // It's possible that a Report was scheduled for a General Query right before the host left the group
         return;
+    }
         
 	int totalSources = 0;
     for (int i = 1; i <= numberOfGroups; i++) {
@@ -166,19 +168,24 @@ void Reporter::handleExpiryGeneral(Timer*, void* data)
 	timerState->me->expireGeneral(timerState);
 }
 
+void Reporter::handleExpiryGroup(Timer*, void* data)
+{
+	AdvancedTimerState* timerState = (AdvancedTimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expireGroup(timerState);
+}
+
 void Reporter::handleExpiryFilter(Timer*, void* data)
 {
-	FilterTimerState* timerState = (FilterTimerState*) data;
+	AdvancedTimerState* timerState = (AdvancedTimerState*) data;
 	assert(timerState);  // the cast must be good
 	timerState->me->expireFilter(timerState);
 }
 
-void Reporter::setQRVCounter(int interface, Packet* p)
+void Reporter::setGeneralQRVCounter(int interface, Packet* p)
 {
     click_ip* iph = (click_ip*) p->data();
     Query* q = (Query*)(iph + 1);
-
-	int counter = q->resvSQRV & 7;  // QRV is filled in 3 LSB
 
 	// resize on first general query on particular interface
 	if (_generalTimerStates.size() <= interface) {
@@ -196,10 +203,44 @@ void Reporter::setQRVCounter(int interface, Packet* p)
 	if (_generalTimers.at(interface) == NULL) {
 		_generalTimers.at(interface) = new Timer(&handleExpiryGeneral, _generalTimerStates.at(interface));
 		_generalTimers.at(interface)->initialize(this);
-	}
+    }
+
     // it's possible for a General Query to reset the counter if the client wasn't able to send out all QRV reports by the time of a new request
+	int counter = q->resvSQRV & 7;  // QRV is filled in 3 LSB
     _generalTimerStates.at(interface)->counter = counter;
     _generalTimerStates.at(interface)->interface = interface;
+}
+
+void Reporter::setGroupQRVCounter(int interface, IPAddress group, FilterMode filter, set<String> sources, Packet* p)
+{
+    click_ip* iph = (click_ip*) p->data();
+    Query* q = (Query*)(iph + 1);
+
+	// resize on first general query on particular interface
+	if (_groupTimerStates.size() <= interface) {
+		_groupTimerStates.resize(interface + 1);
+	}
+	if (_groupTimers.size() <= interface) {
+		_groupTimers.resize(interface + 1);
+	}
+
+	// initialize timerstate and timer if it was deleted after last report on previous group query
+	if (_groupTimerStates.at(interface).get(group) == NULL) {
+		_groupTimerStates.at(interface)[group] = new AdvancedTimerState();
+		_groupTimerStates.at(interface)[group]->me = this;
+	}
+	if (_groupTimers.at(interface).get(group) == NULL) {
+		_groupTimers.at(interface)[group] = new Timer(&handleExpiryGroup, _groupTimerStates.at(interface)[group]);
+		_groupTimers.at(interface)[group]->initialize(this);
+	}
+
+    // it's possible for a Group Query to reset the counter if the client wasn't able to send out all QRV reports by the time of a new request
+    int counter = q->resvSQRV & 7;  // QRV is filled in 3 LSB
+    _groupTimerStates.at(interface)[group]->counter = counter;
+    _groupTimerStates.at(interface)[group]->interface = interface;
+    _groupTimerStates.at(interface)[group]->group = group;
+    _groupTimerStates.at(interface)[group]->filter = filter;
+    _groupTimerStates.at(interface)[group]->sources = sources;
 }
 
 void Reporter::expireGeneral(TimerState* timerState)
@@ -211,7 +252,7 @@ void Reporter::expireGeneral(TimerState* timerState)
     if (counter > 0) {
         // Schedule timer for next report transmission
 		srand(time(NULL) + rand());
-		int value = rand() % (_generalMaxRespTime + 1);
+		int value = rand() % (_generalMaxRespTime.at(interface) + 1);
    		_generalTimers.at(interface)->schedule_after_sec(value);
     } else {
 		// free up memory after last report on general query
@@ -223,7 +264,33 @@ void Reporter::expireGeneral(TimerState* timerState)
 	}
 }
 
-void Reporter::expireFilter(FilterTimerState* timerState)
+void Reporter::expireGroup(AdvancedTimerState* timerState)
+{
+    unsigned int port = timerState->port; 
+    unsigned int interface = timerState->interface;
+    IPAddress group = timerState->group;
+    FilterMode filter = timerState->filter;
+    set<String> sources = timerState->sources;
+
+    reportGroupState(group);
+
+    int counter = --timerState->counter;
+    if (counter > 0) {
+        // Schedule timer for next report transmission
+		srand(time(NULL) + rand());
+		int value = rand() % (_groupMaxRespTime.at(interface)[group] + 1);
+   		_groupTimers.at(interface)[group]->schedule_after_sec(value);
+    } else {
+		// free up memory after last report on general query
+		delete _groupTimerStates.at(interface)[group];
+		_groupTimerStates.at(interface)[group] = NULL;
+
+		delete _groupTimers.at(interface)[group];
+		_groupTimers.at(interface)[group] = NULL;
+	}
+}
+
+void Reporter::expireFilter(AdvancedTimerState* timerState)
 {
 	unsigned int port = timerState->port; 
     unsigned int interface = timerState->interface;
@@ -249,20 +316,20 @@ void Reporter::expireFilter(FilterTimerState* timerState)
 	}
 }
 
-void Reporter::setMaxRespTime(Packet* p)
+void Reporter::setMaxRespTime(Packet* p, int* time)
 {
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1);
 
     if (query->max_resp_code < 128) {
-		this->_generalMaxRespTime = query->max_resp_code;
+		*time = query->max_resp_code;
 	} else {
 		uint8_t exp = (query->max_resp_code & 112) >> 4;
 		uint8_t mant = (query->max_resp_code & 15);
-		this->_generalMaxRespTime = (mant | 0x10) << (exp + 3);
+		*time = (mant | 0x10) << (exp + 3);
 	}
 
-    this->_generalMaxRespTime = this->_generalMaxRespTime / 10;
+    *time /= 10;
 }
 
 void Reporter::scheduleGeneralTimer(int interface, Packet* p)
@@ -274,7 +341,7 @@ void Reporter::scheduleGeneralTimer(int interface, Packet* p)
 
     // pick a random delay within [0, Max Resp Time]
     srand(time(NULL) + rand());
-	int delay = rand() % (_generalMaxRespTime + 1);
+	int delay = rand() % (_generalMaxRespTime.at(interface) + 1);
 
     // check for pending response
     if (_generalTimers.size() > interface && _generalTimers.at(interface) != NULL) {
@@ -283,18 +350,52 @@ void Reporter::scheduleGeneralTimer(int interface, Packet* p)
         if (scheduledOld < scheduledNew) {
             // pending response to General Query is scheduled sooner than new delay
             click_chatter("%s's previous response to General Query is scheduled sooner than new delay, leaving as it is.\n", _states->_source.unparse().c_str());
-            setQRVCounter(interface, p);  // reset the counter
+            setGeneralQRVCounter(interface, p);  // reset the counter
             return;
         }
     }
 
     click_chatter("%s is scheduling new response to General Query.\n", _states->_source.unparse().c_str());
     // there's no pending response for previous General Query
-    setQRVCounter(interface, p);
+    setGeneralQRVCounter(interface, p);
     // Schedule timer on General Query reception
     _generalTimers.at(interface)->schedule_after_sec(delay);
+}
 
-    return;
+void Reporter::scheduleGroupTimer(int interface, IPAddress group, Packet* p)
+{
+    if (!_states->isMemberOf(interface, group)) {
+        // the system has no state to report to Group Query (we do not report all-hosts multicast group address)
+        return;
+    }
+    
+    // pick a random delay within [0, Max Resp Time]
+    srand(time(NULL) + rand());
+	int delay = rand() % (_groupMaxRespTime.at(interface)[group] + 1);
+
+    // check for pending response
+    if (_groupTimers.size() > interface && _groupTimers.at(interface).get(group) != NULL) {
+        Timestamp scheduledOld = _groupTimers.at(interface)[group]->expiry_steady();
+        Timestamp scheduledNew = Timestamp::now_steady() + Timestamp(delay);
+        if (scheduledOld < scheduledNew) {
+            // pending response to Group Query is scheduled sooner than new delay
+            click_chatter("%s's previous response to Group Query is scheduled sooner than new delay, leaving as it is.\n", _states->_source.unparse().c_str());
+            FilterMode filter;
+            set<String> sources;
+            _states->getGroupRecordData(interface, group, filter, sources);
+            setGroupQRVCounter(interface, group, filter, sources, p);  // reset the counter
+            return;
+        }
+    }
+
+    click_chatter("%s is scheduling new response to Group Query.\n", _states->_source.unparse().c_str());
+    // there's no pending response for previous Group Query
+    FilterMode filter;
+    set<String> sources;
+    _states->getGroupRecordData(interface, group, filter, sources);
+    setGroupQRVCounter(interface, group, filter, sources, p);
+    // Schedule timer on Group Query reception
+    _groupTimers.at(interface)[group]->schedule_after_sec(delay);
 }
 
 void Reporter::push(int interface, Packet *p)
@@ -302,14 +403,23 @@ void Reporter::push(int interface, Packet *p)
 	click_ip* iph = (click_ip*) p->data();
 	Query* query = (Query*) (iph + 1); 
 
-    setMaxRespTime(p);
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress()) {
 			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
+            // extract new Max Resp Time and schedule the General Timer if needed
+            if (_generalMaxRespTime.size() <= interface) {
+                _generalMaxRespTime.resize(interface + 1);
+            }
+            setMaxRespTime(p, &_generalMaxRespTime.at(interface));
             scheduleGeneralTimer(interface, p);
         } else {
 			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
-			reportGroupState(query->group_address);
+            // extract new Max Resp Time and schedule the Group Timer if needed
+            if (_groupMaxRespTime.size() <= interface) {
+                _groupMaxRespTime.resize(interface + 1);
+            }
+            setMaxRespTime(p, &_groupMaxRespTime.at(interface)[query->group_address]);
+            scheduleGroupTimer(interface, query->group_address, p);
 		}
 	}
 }
@@ -398,7 +508,7 @@ void Reporter::saveStates(unsigned int port, unsigned int interface, IPAddress g
 
         // initialize timerstate and timer if they are not present anymore
         if (_filterTimerStates.at(interface) == NULL) {
-            _filterTimerStates.at(interface) = new FilterTimerState();
+            _filterTimerStates.at(interface) = new AdvancedTimerState();
             _filterTimerStates.at(interface)->me = this;
         }
         if (_filterTimers.at(interface) == NULL) {

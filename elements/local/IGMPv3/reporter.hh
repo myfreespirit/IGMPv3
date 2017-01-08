@@ -11,7 +11,7 @@ using std::set;
 CLICK_DECLS
 
 struct TimerState;
-struct FilterTimerState; 
+struct AdvancedTimerState; 
 
 class Reporter: public Element {
 public:
@@ -38,30 +38,38 @@ private:
 	void reportGroupState(IPAddress group);
 	void reportFilterModeChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
 	// void reportSourceListChange(unsigned int port, unsigned int interface, IPAddress groupAddress, FilterMode filter, set<String> sources);
-	void setMaxRespTime(Packet* p);
-    void setQRVCounter(int interface, Packet* p);
 
+    void setMaxRespTime(Packet* p, int* maxRespTime);
+    void setGeneralQRVCounter(int interface, Packet* p);
+    void setGroupQRVCounter(int interface, IPAddress group, FilterMode filter, set<String> sources, Packet* p);
+
+    // Advanced Timer helpers
 	static void handleExpiryGeneral(Timer*, void* data);
 	static void handleExpiryFilter(Timer*, void* data);
+	static void handleExpiryGroup(Timer*, void* data);
     void expireGeneral(TimerState* timerState);
-    void expireFilter(FilterTimerState* timerState);
-
+    void expireFilter(AdvancedTimerState* timerState);
+    void expireGroup(AdvancedTimerState* timerState);
     void scheduleGeneralTimer(int interface, Packet* p);
+    void scheduleGroupTimer(int interface, IPAddress group, Packet* p);
+
 
 	// DATA MEMBERS
 	IGMPClientStates* _states;  // infobase
 
     // Timers used to respond to General Queries
+    Vector<int> _generalMaxRespTime;
 	Vector<TimerState*> _generalTimerStates;
 	Vector<Timer*> _generalTimers;
 
     // TODO: Timers used to respond to Group-Specific Queries
-    
-    // Timers used to transmit Filter-Mode-Change Reports
-	Vector<FilterTimerState*> _filterTimerStates;
-	Vector<Timer*> _filterTimers;
+    Vector<HashTable<IPAddress, int> > _groupMaxRespTime;
+    Vector<HashTable<IPAddress, AdvancedTimerState*> > _groupTimerStates;
+    Vector<HashTable<IPAddress, Timer*> > _groupTimers;
 
-	int _generalMaxRespTime;
+    // Timers used to transmit Filter-Mode-Change Reports
+	Vector<AdvancedTimerState*> _filterTimerStates;
+	Vector<Timer*> _filterTimers;
 };
 
 struct TimerState {
@@ -71,7 +79,7 @@ struct TimerState {
 	int interface;
 };
 
-struct FilterTimerState {
+struct AdvancedTimerState {
     Reporter* me;
     int counter;  // amount of retransmissions left
 

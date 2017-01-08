@@ -107,7 +107,8 @@ void Querier::sendQuery(unsigned int interface, IPAddress group = IPAddress())
         // Group Specific Query
         query->max_resp_code = _states->_lmqi;
         // 4 bits Reserved, 1 bit Supressed, 3 bits QRV
-    	query->resvSQRV = (0 << 4) | (0 << 3) | (_states->_lmqc);
+        // p.23 claims we only need to generate one response per Group Query
+    	query->resvSQRV = (0 << 4) | (0 << 3) | (1);
     }
 	query->QQIC = (_generalTimerState->counter > 1) ? _states->_sqic : _states->_qic;
     query->number_of_sources = htons(0);  // We weren't supposed to support Group-And-Source specific Queries

@@ -202,7 +202,36 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 	}
 }
 
-bool IGMPClientStates::isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source)
+bool IGMPClientStates::isMemberOf(unsigned int interface, IPAddress group) const
+{
+    if (interface >= _interfaceStates.size())
+		return false;
+
+	Vector<InterfaceState> states = _interfaceStates.at(interface);
+	Vector<InterfaceState>::const_iterator it;
+	for (it = states.begin(); it != states.end(); it++) {
+		if (it->_groupAddress == group) {
+			return true;
+		}
+	}
+
+    return false;
+}
+
+void IGMPClientStates::getGroupRecordData(int interface, IPAddress group, FilterMode& filter, set<String>& sources)
+{
+	Vector<InterfaceState> states = _interfaceStates.at(interface);
+	Vector<InterfaceState>::const_iterator it;
+	for (it = states.begin(); it != states.end(); it++) {
+		if (it->_groupAddress == group) {
+            filter = it->_filter;
+            sources = it->_sources;
+			break;
+		}
+	}
+}
+
+bool IGMPClientStates::isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source) const
 {
 	if (interface >= _interfaceStates.size())
 		return false;
