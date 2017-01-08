@@ -278,23 +278,23 @@ void Reporter::scheduleGeneralTimer(int interface, Packet* p)
 
     // check for pending response
     if (_generalTimers.size() > interface && _generalTimers.at(interface) != NULL) {
-        Timestamp scheduledOld = _generalTimers.at(interface)->expiry();
-        Timestamp scheduledNew = Timestamp(delay);
+        Timestamp scheduledOld = _generalTimers.at(interface)->expiry_steady();
+        Timestamp scheduledNew = Timestamp::now_steady() + Timestamp(delay);
         if (scheduledOld < scheduledNew) {
             // pending response to General Query is scheduled sooner than new delay
             click_chatter("%s's previous response to General Query is scheduled sooner than new delay, leaving as it is.\n", _states->_source.unparse().c_str());
+            setQRVCounter(interface, p);  // reset the counter
             return;
         }
-    } else {
-        click_chatter("%s is scheduling new response to General Query.\n", _states->_source.unparse().c_str());
-        // there's no pending response for previous General Query
-        setQRVCounter(interface, p);
-
-        // Schedule timer on General Query reception
-        _generalTimers.at(interface)->schedule_after_sec(delay);
-
-        return;
     }
+
+    click_chatter("%s is scheduling new response to General Query.\n", _states->_source.unparse().c_str());
+    // there's no pending response for previous General Query
+    setQRVCounter(interface, p);
+    // Schedule timer on General Query reception
+    _generalTimers.at(interface)->schedule_after_sec(delay);
+
+    return;
 }
 
 void Reporter::push(int interface, Packet *p)
@@ -304,7 +304,7 @@ void Reporter::push(int interface, Packet *p)
 
     setMaxRespTime(p);
 	if (query->type == IGMP_TYPE_QUERY) {
-		if (query->group_address == IPAddress("0.0.0.0")) {
+		if (query->group_address == IPAddress()) {
 			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
             scheduleGeneralTimer(interface, p);
         } else {
