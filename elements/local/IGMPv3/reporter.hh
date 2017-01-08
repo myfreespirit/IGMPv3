@@ -11,6 +11,7 @@ using std::set;
 CLICK_DECLS
 
 struct TimerState;
+struct FilterTimerState; 
 
 class Reporter: public Element {
 public:
@@ -40,22 +41,43 @@ private:
 	void setMaxRespTime(Packet* p);
     void setQRVCounter(int interface, Packet* p);
 
-    void expire(TimerState* timerState);
-	static void handleExpiry(Timer*, void* data);
+	static void handleExpiryGeneral(Timer*, void* data);
+	static void handleExpiryFilter(Timer*, void* data);
+    void expireGeneral(TimerState* timerState);
+    void expireFilter(FilterTimerState* timerState);
 
 	// DATA MEMBERS
 	IGMPClientStates* _states;  // infobase
 
+    // Timers used to respond to General Queries
 	Vector<TimerState*> _generalTimerStates;
 	Vector<Timer*> _generalTimers;
+
+    // TODO: Timers used to respond to Group-Specific Queries
+    
+    // Timers used to transmit Filter-Mode-Change Reports
+	Vector<FilterTimerState*> _filterTimerStates;
+	Vector<Timer*> _filterTimers;
 
 	int _generalMaxRespTime;
 };
 
 struct TimerState {
 	Reporter* me;
-	int interface;
 	int counter;
+
+	int interface;
+};
+
+struct FilterTimerState {
+    Reporter* me;
+    int counter;  // amount of retransmissions left
+
+    unsigned int port;
+    unsigned int interface;
+    IPAddress group;
+    FilterMode filter;
+    set<String> sources;
 };
 
 CLICK_ENDDECLS

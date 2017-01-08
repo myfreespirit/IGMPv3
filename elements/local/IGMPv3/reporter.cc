@@ -161,11 +161,18 @@ void Reporter::reportCurrentState()
 	output(interface).push(q);
 }
 
-void Reporter::handleExpiry(Timer*, void* data)
+void Reporter::handleExpiryGeneral(Timer*, void* data)
 {
 	TimerState* timerState = (TimerState*) data;
 	assert(timerState);  // the cast must be good
-	timerState->me->expire(timerState);
+	timerState->me->expireGeneral(timerState);
+}
+
+void Reporter::handleExpiryFilter(Timer*, void* data)
+{
+	FilterTimerState* timerState = (FilterTimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expireFilter(timerState);
 }
 
 void Reporter::setQRVCounter(int interface, Packet* p)
@@ -187,14 +194,14 @@ void Reporter::setQRVCounter(int interface, Packet* p)
 	if (_generalTimerStates.at(interface) == NULL) {
 		_generalTimerStates.at(interface) = new TimerState();
 		_generalTimerStates.at(interface)->me = this;
-		_generalTimerStates.at(interface)->interface = interface;
 	}
 	if (_generalTimers.at(interface) == NULL) {
-		_generalTimers.at(interface) = new Timer(&handleExpiry, _generalTimerStates.at(interface));
+		_generalTimers.at(interface) = new Timer(&handleExpiryGeneral, _generalTimerStates.at(interface));
 		_generalTimers.at(interface)->initialize(this);
 	}
     // it's possible for a General Query to reset the counter if the client wasn't able to send out all QRV reports by the time of a new request
     _generalTimerStates.at(interface)->counter = counter;  
+    _generalTimerStates.at(interface)->interface = interface;
 
     // Schedule timer on new General Query reception
 	// The schedule value is a random number between 0 and maxRespTime inclusive in seconds
@@ -203,7 +210,7 @@ void Reporter::setQRVCounter(int interface, Packet* p)
     _generalTimers.at(interface)->schedule_after_sec(value);
 }
 
-void Reporter::expire(TimerState* timerState)
+void Reporter::expireGeneral(TimerState* timerState)
 {
     reportCurrentState();
     int counter = --timerState->counter;
@@ -221,6 +228,32 @@ void Reporter::expire(TimerState* timerState)
 
 		delete _generalTimers.at(interface);
 		_generalTimers.at(interface) = NULL;
+	}
+}
+
+void Reporter::expireFilter(FilterTimerState* timerState)
+{
+	unsigned int port = timerState->port; 
+    unsigned int interface = timerState->interface;
+    IPAddress groupAddress = timerState->group;
+    FilterMode filter = timerState->filter;
+    set<String> sources = timerState->sources;
+
+	reportFilterModeChange(port, interface, groupAddress, filter, sources);
+
+    int counter = --timerState->counter;
+    if (counter > 0) {
+        // Schedule timer for retransmission
+		srand(time(NULL) + rand());
+		int value = rand() % (_states->_uri + 1);
+   		_filterTimers.at(interface)->schedule_after_sec(value);
+    } else {
+		// free up memory after last report
+		delete _filterTimerStates.at(interface);
+		_filterTimerStates.at(interface) = NULL;
+
+		delete _filterTimers.at(interface);
+		_filterTimers.at(interface) = NULL;
 	}
 }
 
@@ -327,7 +360,38 @@ void Reporter::saveStates(unsigned int port, unsigned int interface, IPAddress g
 	_states->saveInterfaceState(port, interface, groupAddress, filter, sources);
 
 	if (reportMode == FILTER_MODE_CHANGE_REPORT) {
+        // immediate transmission of the first Filter Mode Change Report 
 		reportFilterModeChange(port, interface, groupAddress, filter, sources);
+
+        // resize data structures on first Filter Mode Change Report on this interface
+        if (_filterTimerStates.size() <= interface) {
+            _filterTimerStates.resize(interface + 1);
+        }
+        if (_filterTimers.size() <= interface) {
+            _filterTimers.resize(interface + 1);
+        }
+
+        // initialize timerstate and timer if they are not present anymore
+        if (_filterTimerStates.at(interface) == NULL) {
+            _filterTimerStates.at(interface) = new FilterTimerState();
+            _filterTimerStates.at(interface)->me = this;
+        }
+        if (_filterTimers.at(interface) == NULL) {
+            _filterTimers.at(interface) = new Timer(&handleExpiryFilter, _filterTimerStates.at(interface));
+            _filterTimers.at(interface)->initialize(this);
+        }
+        // in case of transmission of a new Filter Mode Change Report State, the fields need to be reset
+        _filterTimerStates.at(interface)->counter = _states->_rrv - 1;
+        _filterTimerStates.at(interface)->port = port;
+        _filterTimerStates.at(interface)->interface = interface;
+        _filterTimerStates.at(interface)->group = groupAddress;
+        _filterTimerStates.at(interface)->filter = filter;
+        _filterTimerStates.at(interface)->sources = sources;
+ 
+        // schedule timer between (0, [Unsolicited Reporter Interval]) seconds
+        srand(time(NULL) + rand());
+        int value = rand() % (_states->_uri + 1);
+        _filterTimers.at(interface)->schedule_after_sec(value);
 	}
 	/*
 	   else if (reportMode == SOURCE_LIST_CHANGE_REPORT) {

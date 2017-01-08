@@ -9,8 +9,10 @@ using namespace setoperations;
 
 CLICK_DECLS
 
-IGMPClientStates::IGMPClientStates()
+IGMPClientStates::IGMPClientStates() : _rrv(2), _uri(1)
 {
+    // Client's are members of all-hosts multicast group on which they receive Queries from multicast routers
+    
 	_interfaceStates.resize(1);
 	InterfaceState iState = InterfaceState(IPAddress("224.0.0.1"), MODE_IS_EXCLUDE, std::set<String>());
 	_interfaceStates.at(0).push_back(iState);
@@ -295,10 +297,73 @@ String IGMPClientStates::interfaceStates(Element* e, void* thunk)
 	return output;
 }
 
+String IGMPClientStates::getRRV(Element* e, void* thunk)
+{
+    IGMPClientStates* me = (IGMPClientStates*) e;
+
+    String output = String(me->_rrv) + "\n";
+
+    return output;
+}
+
+String IGMPClientStates::getURI(Element* e, void* thunk)
+{
+    IGMPClientStates* me = (IGMPClientStates*) e;
+
+    String output = String(me->_uri) + "s\n";
+
+    return output;
+}
+
+int IGMPClientStates::setRRV(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+    IGMPClientStates* me = (IGMPClientStates *) e;
+
+    unsigned int rrv;
+
+    if (cp_va_kparse(conf, me, errh,
+                    "VAL", cpkM + cpkP, cpUnsigned, &rrv,
+                    cpEnd) < 0) {
+            return -1;
+    }
+
+    if (rrv == 0) {
+        return errh->error("RRV must not be equal to 0.");
+    } else if (rrv == 1) {
+        errh->warning("RRV should not be equal to 1.");
+    }
+
+    me->_rrv = rrv;
+
+    return 0;
+}
+
+int IGMPClientStates::setURI(const String &conf, Element* e, void* thunk, ErrorHandler* errh)
+{
+    IGMPClientStates* me = (IGMPClientStates *) e;
+
+    unsigned int uri;
+
+    if (cp_va_kparse(conf, me, errh,
+                    "VAL", cpkM + cpkP, cpUnsigned, &uri,
+                    cpEnd) < 0) {
+            return -1;
+    }
+
+    me->_uri = uri;
+
+    return 0;
+}
+
 void IGMPClientStates::add_handlers()
 {
 	add_read_handler("sockets", &socketStates, (void *) 0);
 	add_read_handler("interfaces", &interfaceStates, (void *) 0);
+    add_read_handler("rrv", &getRRV, (void *) 0);
+	add_read_handler("uri", &getURI, (void *) 0);
+
+    add_write_handler("rrv", &setRRV, (void *) 0);
+	add_write_handler("uri", &setURI, (void *) 0);
 }
 
 

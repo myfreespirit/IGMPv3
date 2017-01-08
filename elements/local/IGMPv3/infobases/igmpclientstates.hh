@@ -33,12 +33,20 @@ public:
 
 	bool isMulticastAllowed(unsigned int interface, IPAddress group, IPAddress source);
 
+	void add_handlers();
 	/**
-	 * handlers
+	 * read handlers
 	 */
 	static String socketStates(Element* e, void* thunk);
 	static String interfaceStates(Element* e, void* thunk);
-	void add_handlers();
+    static String getRRV(Element* e, void* thunk);
+    static String getURI(Element* e, void* thunk);
+
+	/**
+	 * write handlers
+	 */
+    static int setRRV(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
+    static int setURI(const String& conf, Element* e, void* thunk, ErrorHandler* errh);
 
 	/**
 	 * data members
@@ -47,6 +55,9 @@ public:
 	IPAddress _destination;
 	HashTable<int, Vector<SocketState> > _socketStates;
 	Vector<Vector<InterfaceState> >_interfaceStates;
+
+    unsigned int _rrv;  // Reporter's Robustness Variable 
+    unsigned int _uri;  // Unsolicited Report Interval (seconds)
 };
 
 
