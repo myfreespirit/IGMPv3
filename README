@@ -8,12 +8,15 @@ When replacing ipnetwork.click file, it's important to put it inside our scripts
 	cd click-2.0.1/
 	./userlevel/click -p 10000 scripts/IGMPv3/ipnetwork.click
 
-
-Using telnet it's possible to play around with Client's and Router's elements:
+Using telnet it's possible to play around with Client's and Router's elements manually:
 	telnet localhost 10000
 
+Alternatively you can also run our tiny shell script which dynamically displays Router's Record States for up to 250 seconds
+including Group Timer value after 2 clients on different networks joined the default multicast group (while Robustness Variable = 1):
+    ./demo.sh | telnet localhost 10000
 
-We have provided a handful of read and write handlers for demonstration purposes:
+
+We have provided a handful of read and write handlers for demonstration purposes listed below:
 
 CLIENTS
 =======
