@@ -106,7 +106,7 @@ void Reporter::reportCurrentState()
     
     int interface = 0;  // assume general query arrived at interface 0
     int numberOfGroups = _states->_interfaceStates.at(interface).size() - 1;  // subtract the all hosts membership group
-    click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
+    // click_chatter("%s is member of %d groups on interface %d", _states->_source.unparse().c_str(), numberOfGroups, interface);
     if (numberOfGroups == 0) {
         // It's possible that a Report was scheduled for a General Query right before the host left the group
         return;
@@ -405,7 +405,7 @@ void Reporter::push(int interface, Packet *p)
 
 	if (query->type == IGMP_TYPE_QUERY) {
 		if (query->group_address == IPAddress()) {
-			click_chatter("%s recognized general query", _states->_source.unparse().c_str());
+			// click_chatter("%s recognized general query", _states->_source.unparse().c_str());
             // extract new Max Resp Time and schedule the General Timer if needed
             if (_generalMaxRespTime.size() <= interface) {
                 _generalMaxRespTime.resize(interface + 1);
@@ -413,7 +413,7 @@ void Reporter::push(int interface, Packet *p)
             setMaxRespTime(p, &_generalMaxRespTime.at(interface));
             scheduleGeneralTimer(interface, p);
         } else {
-			click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
+			// click_chatter("%s recognized group specific query for %s", _states->_source.unparse().c_str(), IPAddress(query->group_address).unparse().c_str());
             // extract new Max Resp Time and schedule the Group Timer if needed
             if (_groupMaxRespTime.size() <= interface) {
                 _groupMaxRespTime.resize(interface + 1);

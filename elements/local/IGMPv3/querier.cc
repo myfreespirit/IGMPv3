@@ -101,15 +101,15 @@ void Querier::push(int interface, Packet *p)
 	GroupRecord* groupRecord = (GroupRecord*) (report + 1);
 	unsigned int groupType = groupRecord->type;
 
-	click_chatter("Router received a packet from %s on port/interface %d", IPAddress(iph->ip_src).unparse().c_str(), interface);
+	// click_chatter("Router received a packet from %s on port/interface %d", IPAddress(iph->ip_src).unparse().c_str(), interface);
 	
 	if (groupType == CHANGE_TO_INCLUDE_MODE || groupType == CHANGE_TO_EXCLUDE_MODE) {
-		click_chatter("Recognized FILTER-MODE-CHANGE report for group %s", IPAddress(groupRecord->multicast_address).unparse().c_str());
+		// click_chatter("Recognized FILTER-MODE-CHANGE report for group %s", IPAddress(groupRecord->multicast_address).unparse().c_str());
 		int totalSources = ntohs(groupRecord->number_of_sources);
 		Vector<IPAddress> vSources;
 		Addresses* addresses = (Addresses*) (groupRecord + 1);
 		for (int i = 0; i < totalSources; i++) {
-			click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
+			// click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
 			vSources.push_back(addresses->array[i]);
 		}
 		QUERY_MODE queryMode = _states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
@@ -119,7 +119,7 @@ void Querier::push(int interface, Packet *p)
             scheduleGroupTimer(interface, groupRecord->multicast_address);
         }
 	} else if (groupType == MODE_IS_INCLUDE || groupType == MODE_IS_EXCLUDE) {
-		click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
+		// click_chatter("Recognized CURRENT-STATE report for %d groups", ntohs(report->number_of_group_records));
 
 		int totalGroups = ntohs(report->number_of_group_records);
 		for (int g = 0; g < totalGroups; g++) {
@@ -127,7 +127,7 @@ void Querier::push(int interface, Packet *p)
 			Vector<IPAddress> vSources;
 			Addresses* addresses = (Addresses*) (groupRecord + 1);
 			for (int i = 0; i < totalSources; i++) {
-				click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
+				// click_chatter("Extracted %s source IPAddress", IPAddress(addresses->array[i]).unparse().c_str());
 				vSources.push_back(addresses->array[i]);
 			}
 			_states->updateCurrentState(interface, groupRecord->multicast_address, groupType, vSources);

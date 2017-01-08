@@ -26,8 +26,6 @@ void MulticastReceiver::push(int, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
 
-	// click_chatter("%s received a packet from %s destined to %s", _states->_source.unparse().c_str(), IPAddress(iph->ip_src).unparse().c_str(), IPAddress(iph->ip_dst).unparse().c_str());
-
 	int interface = 0;
 	if (_states->isMulticastAllowed(interface, iph->ip_dst, iph->ip_src)) {
 		WritablePacket *clone = p->uniqueify();

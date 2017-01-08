@@ -27,8 +27,6 @@ void MulticastSender::push(int i, Packet *p)
 {
 	click_ip* iph = (click_ip*) p->data();
 
-    // click_chatter("Router received a packet from %s on port/interface %d, destined to %s", IPAddress(iph->ip_src).unparse().c_str(), interface, IPAddress(iph->ip_dst).unparse().c_str());
-
 	if (_states->isMulticastAllowed(i, iph->ip_dst, iph->ip_src)) {
 		output(i).push(p);
 	}

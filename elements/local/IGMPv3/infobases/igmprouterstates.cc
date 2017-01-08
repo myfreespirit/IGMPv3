@@ -142,7 +142,6 @@ void IGMPRouterStates::scheduleGMI(int interface, IPAddress groupAddress, int de
     }
     groupTimer->schedule_after_sec(delay);
     _groupTimers.at(interface)[groupAddress] = groupTimer;
-    click_chatter("remaining GMI: %d s\n", computeRemainingGMI(interface, groupAddress));
 }
 
 // RFC 3376, page 30 - 31
@@ -155,7 +154,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
-	click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
+	// click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
 	
 	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
@@ -221,7 +220,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			
 	_records.at(interface)[groupAddress] = routerRecord;
 
-	click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
+	// click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
 }
 
 // RFC 3376, page 31 - 33
@@ -235,7 +234,7 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 	
 	// if record with given group didn't exist yet, it will be added as INCLUDE {} rightaway
 	RouterRecord routerRecord = _records.at(interface)[groupAddress];
-	click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
+	// click_chatter("router's filter mode: %d, client's: %u", routerRecord._filter, filter);
 	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
@@ -281,7 +280,7 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 
 	_records.at(interface)[groupAddress] = routerRecord;
 
-	click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
+	// click_chatter("NEW ROUTER FILTER:%d, ALLOW:%d, BLOCK:%d", routerRecord._filter, routerRecord._forwardingSet.size(), routerRecord._blockingSet.size());
 
 	return result;
 }

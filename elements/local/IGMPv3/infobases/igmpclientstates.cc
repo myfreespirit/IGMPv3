@@ -176,9 +176,9 @@ void IGMPClientStates::saveInterfaceState(unsigned int port, unsigned int interf
 				break;
 			}
 		}
-		// exception, we might need to rollback to previous interface state (backtracked above)
+		// TODO: this exception is probably deadcode, we might need to rollback to previous interface state (backtracked above)
 		if (state._filter != MODE_IS_INCLUDE || includeSources.size() > 0) {
-            click_chatter("TODO: IGMPClientStates::saveInterfaceState which use case is this backtracking?");
+            // click_chatter("TODO: IGMPClientStates::saveInterfaceState which use case is this backtracking?");
 			_interfaceStates.at(interface).push_back(state);
 		}
 		return;
