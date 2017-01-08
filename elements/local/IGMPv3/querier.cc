@@ -22,11 +22,12 @@ int Querier::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	if (cp_va_kparse(conf, this, errh, "ROUTER_STATES", cpkM, cpElementCast, "IGMPRouterStates", &_states, cpEnd) < 0) return -1;
 
-    // Initialize timerstates
+    // GENERAL QUERIES INITIALIZATION
+    // timerstates
     _generalTimerState = new GeneralTimerState();
     _generalTimerState->me = this;
     _generalTimerState->counter = _states->_sqc;
-    // Initialize timers
+    // timers
     _generalTimer = new Timer(&handleGeneralExpiry, _generalTimerState);
     _generalTimer->initialize(this);
     _generalTimer->schedule_after_sec(_states->_sqic);
@@ -55,7 +56,9 @@ void Querier::push(int interface, Packet *p)
 		QUERY_MODE queryMode = _states->updateFilterChange(interface, groupRecord->multicast_address, groupType, vSources);
 
 		if (queryMode == GROUP_QUERY) {
+            // TODO: TIMERs
             // When a client leaves a group, we need to send a Group-Specific Query for that multicast address on received interface.
+            // Robustness: retransmit up to LMQC times with intervals of LMQI, first one is sent out immediately
 			sendQuery(interface, groupRecord->multicast_address);
 		}
 	} else if (groupType == MODE_IS_INCLUDE || groupType == MODE_IS_EXCLUDE) {

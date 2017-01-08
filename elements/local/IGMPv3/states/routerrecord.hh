@@ -15,7 +15,6 @@ public:
    	{
    	}
 
-	// _groupTimer  // to transition from EXCLUDE to INCLUDE router-filter-mode
 	FilterMode _filter;
 
 	// RFC 3376 page 30

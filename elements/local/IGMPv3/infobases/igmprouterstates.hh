@@ -9,6 +9,8 @@
 
 CLICK_DECLS
 
+struct GroupTimerState;
+
 class IGMPRouterStates : public Element {
 public:
 	IGMPRouterStates();
@@ -56,7 +58,10 @@ public:
 	 */
 	IPAddress _source;
 	IPAddress _destination;
-	Vector<HashTable<IPAddress, RouterRecord> > _records;  // per interface, per group
+    // per interface, per group
+	Vector<HashTable<IPAddress, RouterRecord> > _records;
+    Vector<HashTable<IPAddress, Timer*> > _groupTimers;
+    Vector<HashTable<IPAddress, GroupTimerState*> > _groupTimerStates;
 
     unsigned int _qrv; 
     unsigned int _qic;
@@ -67,10 +72,26 @@ public:
     unsigned int _lmqc;
 
 private:
+	static void handleExpiryGroup(Timer*, void* data);
+    void expireGroup(GroupTimerState* timerState);
+
 	// collects all source addresses either from _forwardingSet or _blockingSet depening on given filter for a router record with given interface and groupAddress
 	Vector<IPAddress> getSourceAddresses(unsigned int interface, IPAddress groupAddress, FilterMode filter);
 	Vector<SourceRecord> transformToSourceRecords(Vector<IPAddress> a);
 	void removeSourceRecords(Vector<SourceRecord>& records, Vector<IPAddress> x);
+
+    double computeLMQT();
+    int computeGMI();
+    int computeRemainingGMI(int interface, IPAddress group);
+    void scheduleGMI(int interface, IPAddress groupAddress, int delay);
+};
+
+struct GroupTimerState {
+    IGMPRouterStates* me;
+
+    int interface;
+    IPAddress group;
+    FilterMode filter;
 };
 
 

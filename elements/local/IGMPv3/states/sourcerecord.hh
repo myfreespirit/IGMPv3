@@ -4,7 +4,7 @@
 // RFC 3376 page 26
 class SourceRecord {
 public:
-	SourceRecord() : _sourceAddress(IPAddress("0.0.0.0"))
+	SourceRecord() : _sourceAddress(IPAddress())
 	{
 	}
 

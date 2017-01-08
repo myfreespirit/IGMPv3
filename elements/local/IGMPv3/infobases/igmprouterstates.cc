@@ -1,6 +1,8 @@
 #include <click/config.h>
 #include <click/confparse.hh>
 #include <click/error.hh>
+#include <click/timer.hh>
+
 #include <algorithm>
 
 #include "igmprouterstates.hh"
@@ -84,6 +86,65 @@ Vector<SourceRecord> IGMPRouterStates::transformToSourceRecords(Vector<IPAddress
 	return result;
 }
 
+void IGMPRouterStates::handleExpiryGroup(Timer*, void* data)
+{
+    GroupTimerState* timerState = (GroupTimerState*) data;
+	assert(timerState);  // the cast must be good
+	timerState->me->expireGroup(timerState);
+}
+
+void IGMPRouterStates::expireGroup(GroupTimerState* timerState)
+{
+    int interface = timerState->interface;
+    IPAddress group = timerState->group;
+    FilterMode filter = timerState->filter;
+
+    if (filter == MODE_IS_EXCLUDE) {
+        // router's fitler mode transitions to INCLUDE after group timer expires[RFC3376] p.33
+        RouterRecord* record = &_records.at(interface)[group];
+
+        if (record->_forwardingSet.size() == 0) {
+            // all source timers expired, delete Record
+            _records.at(interface).erase(group);
+            _groupTimers.at(interface).erase(group);
+        } else {
+            record->_filter = MODE_IS_INCLUDE;
+
+            // remove source records with source timer == 0
+            record->_blockingSet.clear();
+        }
+    }
+}
+
+void IGMPRouterStates::scheduleGMI(int interface, IPAddress groupAddress, int delay)
+{
+    RouterRecord* record = &_records.at(interface)[groupAddress];
+    if (_groupTimerStates.size() <= interface) {
+        _groupTimerStates.resize(interface + 1);
+    }
+    GroupTimerState* groupTimerState = _groupTimerStates.at(interface)[groupAddress];
+    if (groupTimerState == NULL) {
+        groupTimerState = new GroupTimerState();
+        groupTimerState->me = this;
+    }
+    groupTimerState->interface = interface;
+    groupTimerState->group = groupAddress;
+    groupTimerState->filter = record->_filter;
+    _groupTimerStates.at(interface)[groupAddress] = groupTimerState;
+
+    if (_groupTimers.size() <= interface) {
+        _groupTimers.resize(interface + 1);
+    }
+    Timer* groupTimer = _groupTimers.at(interface)[groupAddress];
+    if (groupTimer == NULL) {
+        groupTimer = new Timer(&handleExpiryGroup, groupTimerState);
+        groupTimer->initialize(this);
+    }
+    groupTimer->schedule_after_sec(delay);
+    _groupTimers.at(interface)[groupAddress] = groupTimer;
+    click_chatter("remaining GMI: %d s\n", computeRemainingGMI(interface, groupAddress));
+}
+
 // RFC 3376, page 30 - 31
 // @ REQUIRES that the received packet contains CURRENT STATE group record types
 void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress groupAddress, unsigned int filter, Vector<IPAddress> sources)
@@ -98,7 +159,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 	
 	Vector<IPAddress> routerForwardingSources = getSourceAddresses(interface, groupAddress, MODE_IS_INCLUDE);
 
-	if (routerRecord._filter == MODE_IS_INCLUDE) {	
+	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == MODE_IS_INCLUDE) {
 			// router's filter mode remains include
 			
@@ -106,9 +167,9 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 
 			// TODO set source timer for set B to GMI
+            // NOOP as B is an empty set
 		} else {
 			// client-filter-mode is EXCLUDE
-			
 			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
 			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 
 			Vector<IPAddress> toDeleteFromForwards = vector_difference(routerForwardingSources, sources);
@@ -119,7 +180,10 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			routerRecord._filter = MODE_IS_EXCLUDE;
 
 			// TODO set source timer for set (B-A) to 0
-			// TODO set group timer to GMI
+            // NOOP as B-A is an empty set
+
+			// schedule group timer to GMI
+            scheduleGMI(interface, groupAddress, computeGMI());
 		}
 	} else {
 		// router-filter-mode is and remains EXCLUDE
@@ -133,6 +197,7 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 
 			// TODO set source timer for set A to GMI
+            // NOOP as A is an empty set
 		} else {
 			// client-filter-mode is EXCLUDE
 
@@ -143,14 +208,14 @@ void IGMPRouterStates::updateCurrentState(unsigned int interface, IPAddress grou
 
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
-
-			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
-			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 			removeSourceRecords(routerRecord._forwardingSet, toDeleteFromForwards);
 			removeSourceRecords(routerRecord._blockingSet, toDeleteFromBlocks);
 
 			// TODO set source timers for set (A-X-Y) to GMI
-			// TODO set group timer to GMI
+            // NOOP as A-X-Y is empty set
+            
+			// set group timer to GMI
+            scheduleGMI(interface, groupAddress, computeGMI());
 		}
 	}
 			
@@ -175,8 +240,8 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 
 	if (routerRecord._filter == MODE_IS_INCLUDE) {
 		if (filter == CHANGE_TO_EXCLUDE_MODE) {
-			// TODO set group timer for routerRecord
-			// TODO set source timer for difference set (B-A)
+			// TODO set source timer for difference set (B-A) to 0
+            // NOOP as B-A is an empty set
 
 			Vector<IPAddress> newForwarding = vector_intersect(sources, routerForwardingSources); 
 			Vector<IPAddress> newBlocking = vector_difference(sources, routerForwardingSources); 	
@@ -186,6 +251,9 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 			removeSourceRecords(routerRecord._forwardingSet, toDeleteForwards);
 			routerRecord._filter = MODE_IS_EXCLUDE;
+            
+			// set group timer to GMI for Record
+            scheduleGMI(interface, groupAddress, computeGMI());
 		} else {
 			// from INCLUDE to ALLOW | BLOCK | TO_IN isn't required in our version
 		}
@@ -196,14 +264,16 @@ QUERY_MODE IGMPRouterStates::updateFilterChange(unsigned int interface, IPAddres
 
 			Vector<IPAddress> routerBlockingSources = getSourceAddresses(interface, groupAddress, MODE_IS_EXCLUDE);
 
-			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources); 
-			Vector<IPAddress> newBlocking = vector_difference(routerBlockingSources, sources); 
-			
+			Vector<IPAddress> newForwarding = vector_union(routerForwardingSources, sources);
+			Vector<IPAddress> newBlocking = vector_difference(routerBlockingSources, sources);
 			routerRecord._forwardingSet = transformToSourceRecords(newForwarding);
 			routerRecord._blockingSet = transformToSourceRecords(newBlocking);
 
-			// TODO set source timer for sources A
-			result = GROUP_QUERY;
+			// TODO set source timer for sources A to 0
+            // NOOP as A is an empty set
+			
+            result = GROUP_QUERY;
+            scheduleGMI(interface, groupAddress, computeLMQT()); 
 		} else {
 			// from EXCLUDE to ALLOW | BLOCK | TO_EX isn't required in our version
 		}
@@ -265,7 +335,7 @@ String IGMPRouterStates::recordStates(Element* e, void* thunk)
 
 			output += "\t " + String(i) + " | ";
 			output += " " + group.unparse() + "  | ";
-			output += "X sec | ";
+			output += " " + String(me->computeRemainingGMI(i, group)) + "s | ";
 			output += (record._filter == MODE_IS_INCLUDE) ? "INCLUDE | " : "EXCLUDE | ";
 			
 			output += (amountOfAllows) ? record._forwardingSet.at(0)._sourceAddress.unparse() : " \t  ";
@@ -330,14 +400,25 @@ String IGMPRouterStates::getQRI(Element* e, void* thunk)
     return output;
 }
 
+int IGMPRouterStates::computeGMI()
+{
+    return _qrv * codeToSeconds(_qic) + codeToSeconds(_qri)/10.0;
+}
+
+int IGMPRouterStates::computeRemainingGMI(int interface, IPAddress group)
+{
+    if (_groupTimers.size() <= interface || _groupTimers.at(interface)[group] == NULL) {
+        return 0;
+    }
+
+    return (_groupTimers.at(interface)[group]->expiry_steady() - Timestamp::now_steady()).sec();
+}
+
 String IGMPRouterStates::getGMI(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    //unsigned int gmiCode = me->_qrv * me->_qic + me->_qri;
-    double gmiTime = me->_qrv * me->codeToSeconds(me->_qic) + me->codeToSeconds(me->_qri)/10.0;
-
-    String output = String(gmiTime) + "s\n";
+    String output = String(me->computeGMI()) + "s\n";
 
     return output;
 }
@@ -380,13 +461,16 @@ String IGMPRouterStates::getLMQC(Element* e, void* thunk)
     return output;
 }
 
+double IGMPRouterStates::computeLMQT()
+{
+    return _lmqc * codeToSeconds(_lmqi)/10.0;
+}
+
 String IGMPRouterStates::getLMQT(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    double lmqt = me->_lmqc * me->codeToSeconds(me->_lmqi)/10.0;
-
-    String output = String(lmqt) + "s\n";
+    String output = String(me->computeLMQT()) + "s\n";
 
     return output;
 }
