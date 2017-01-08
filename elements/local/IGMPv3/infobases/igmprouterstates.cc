@@ -316,7 +316,7 @@ String IGMPRouterStates::getQIC(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    String output = String(me->_qic) + " s\n";
+    String output = String(me->codeToSeconds(me->_qic)) + " s\n";
 
     return output;
 }
@@ -325,7 +325,7 @@ String IGMPRouterStates::getQRI(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    String output = String(me->_qri) + " (= " + String(me->codeToSeconds(me->_qri)) + "s)\n";
+    String output = String(me->_qri) + " (= " + String(me->codeToSeconds(me->_qri)/10.0) + "s)\n";
 
     return output;
 }
@@ -335,7 +335,7 @@ String IGMPRouterStates::getGMI(Element* e, void* thunk)
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
     //unsigned int gmiCode = me->_qrv * me->_qic + me->_qri;
-    double gmiTime = me->_qrv * me->_qic + me->codeToSeconds(me->_qri);
+    double gmiTime = me->_qrv * me->codeToSeconds(me->_qic) + me->codeToSeconds(me->_qri)/10.0;
 
     String output = String(gmiTime) + "s\n";
 
@@ -346,7 +346,7 @@ String IGMPRouterStates::getSQIC(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    String output = String(me->_sqic) + "s\n";
+    String output = String(me->codeToSeconds(me->_sqic)) + "s\n";
 
     return output;
 }
@@ -364,7 +364,7 @@ String IGMPRouterStates::getLMQI(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    double lmqiTime = me->codeToSeconds(me->_lmqi);
+    double lmqiTime = me->codeToSeconds(me->_lmqi)/10.0;
 
     String output = String(lmqiTime) + "s\n";
 
@@ -384,7 +384,7 @@ String IGMPRouterStates::getLMQT(Element* e, void* thunk)
 {
     IGMPRouterStates* me = (IGMPRouterStates*) e;
 
-    double lmqt = me->_lmqc * me->codeToSeconds(me->_lmqi);
+    double lmqt = me->_lmqc * me->codeToSeconds(me->_lmqi)/10.0;
 
     String output = String(lmqt) + "s\n";
 
@@ -429,8 +429,8 @@ int IGMPRouterStates::setQIC(const String &conf, Element* e, void* thunk, ErrorH
 		return -1;
 	}
 
-    if (qic <= me->_qri) {
-        return errh->error("QIC must be greater than QRI.");
+    if (me->codeToSeconds(qic) <= me->codeToSeconds(me->_qri)/10.0) {
+        return errh->error("QIC must be greater than QRI in seconds equivalent.");
     }
 
     me->_qic = qic;
@@ -450,8 +450,8 @@ int IGMPRouterStates::setQRI(const String &conf, Element* e, void* thunk, ErrorH
 		return -1;
 	}
 
-    if (qri >= me->_qic) {
-        return errh->error("QRI must be less than QIC.");
+    if (me->codeToSeconds(qri)/10.0 >= me->codeToSeconds(me->_qic)) {
+        return errh->error("QRI must be less than QIC in seconds equivalent.");
     }
 
     me->_qri = qri;
@@ -521,12 +521,12 @@ void IGMPRouterStates::add_handlers()
 double IGMPRouterStates::codeToSeconds(unsigned int code)
 {
     if (code < 128) {
-        return code / 10.0;
+        return code;
     }
 
     uint8_t exp = (code & 112) >> 4;
     uint8_t mant = (code & 15);
-    return ((mant | 0x10) << (exp + 3)) / 10.0;
+    return (mant | 0x10) << (exp + 3);
 }
 
 
